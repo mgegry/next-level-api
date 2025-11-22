@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Role } from './role.enum';
 
 @Entity()
 export class User {
@@ -25,6 +26,9 @@ export class User {
 
   @Column({ name: 'password_hash' })
   passwordHash: string;
+
+  @Column({ name: 'role' })
+  role: Role;
 
   @Column({ name: 'tenant_id' })
   tenantId: number;
