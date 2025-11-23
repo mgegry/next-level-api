@@ -30,6 +30,9 @@ export class User {
   @Column({ name: 'role' })
   role: Role;
 
+  @Column({ name: 'refresh_token_hash', nullable: true, type: 'text' })
+  refreshTokenHash: string | null;
+
   @Column({ name: 'tenant_id' })
   tenantId: number;
 

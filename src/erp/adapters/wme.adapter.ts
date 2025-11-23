@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { IErpAdapter } from '../erp.interface';
 import { firstValueFrom } from 'rxjs';
 
-export class WmeAdaptor implements IErpAdapter {
+export class WmeAdapter implements IErpAdapter {
   constructor(
     private readonly config: Record<string, any>,
     private readonly http: HttpService,

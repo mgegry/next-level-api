@@ -6,8 +6,6 @@ import { TenantModule } from './tenant/tenant.module';
 import { CoreModule } from './core/core.module';
 import { ErpModule } from './erp/erp.module';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtGuard } from './auth/guards/jwt.guard';
-import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
@@ -20,10 +18,6 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ErpModule,
   ],
   controllers: [],
-  providers: [
-    { provide: APP_GUARD, useClass: JwtGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
-    JwtStrategy,
-  ],
+  providers: [{ provide: APP_GUARD, useClass: RolesGuard }],
 })
 export class AppModule {}

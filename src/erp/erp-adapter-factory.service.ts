@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { TenantService } from 'src/tenant/tenant.service';
 import { IErpAdapter } from './erp.interface';
 import { SoftoneAdapter } from './adapters/softone.adapter';
-import { WmeAdaptor } from './adapters/wme.adapter';
+import { WmeAdapter } from './adapters/wme.adapter';
 import { CryptoService } from 'src/core/crypto/crypto.service';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class ErpAdapterFactoryService {
       case 'softone':
         return new SoftoneAdapter(erpConfig, this.http);
       case 'wme':
-        return new WmeAdaptor(erpConfig, this.http);
+        return new WmeAdapter(erpConfig, this.http);
       default:
         throw new Error(`Unknown ERP provider: ${tenant.erpProvider}`);
     }
