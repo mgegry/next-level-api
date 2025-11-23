@@ -1,17 +1,10 @@
-import {
-  BadRequestException,
-  Controller,
-  HttpCode,
-  Post,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, HttpCode, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginResponseDto } from './dtos/login-response.dto';
-import { ApiCreatedResponse } from '@nestjs/swagger';
 import { JwtGuard } from './guards/jwt.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { LocalGuard } from './guards/local.guard';
+import { LoginResponseDto } from './dtos/login-response.dto';
+import { RefreshResponseDto } from './dtos/refresh-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -19,21 +12,20 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  @ApiCreatedResponse({ type: LoginResponseDto })
-  async login(@Request() req): Promise<LoginResponseDto | BadRequestException> {
+  async login(@Request() req): Promise<LoginResponseDto> {
     return this.authService.login(req.user);
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtRefreshGuard)
+  async refreshTokens(@Request() req): Promise<RefreshResponseDto> {
+    return this.authService.refreshTokens(req.user);
   }
 
   @Post('logout')
   @UseGuards(JwtGuard)
   @HttpCode(204)
-  async logout(@Request() req) {
+  async logout(@Request() req): Promise<void> {
     await this.authService.logout(req.user.id);
-  }
-
-  @Post('refresh')
-  @UseGuards(JwtRefreshGuard)
-  async refreshTokens(@Request() req) {
-    return this.authService.refreshTokens(req.user);
   }
 }
