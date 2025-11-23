@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { IErpAdapter } from '../erp.interface';
+import { IErpAdapter } from '../erp-adapter.interface';
 import { firstValueFrom } from 'rxjs';
 import { SoftoneLoginResponseDto } from '../dtos/softone/softone-login-reponse.type';
 import { SoftoneAuthenticateResponseDto } from '../dtos/softone/softone-authenticate-reponse.type';

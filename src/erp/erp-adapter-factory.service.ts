@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { TenantService } from 'src/tenant/tenant.service';
-import { IErpAdapter } from './erp.interface';
+import { IErpAdapter } from './erp-adapter.interface';
 import { SoftoneAdapter } from './adapters/softone.adapter';
 import { WmeAdapter } from './adapters/wme.adapter';
 import { CryptoService } from 'src/core/crypto/crypto.service';

@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { IErpAdapter } from '../erp.interface';
+import { IErpAdapter } from '../erp-adapter.interface';
 import { firstValueFrom } from 'rxjs';
 
 export class WmeAdapter implements IErpAdapter {
