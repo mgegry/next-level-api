@@ -9,6 +9,7 @@ import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { AccessToken } from './types/access-token.type';
 import { ConfigService } from '@nestjs/config';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -20,7 +21,7 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async login(user: any): Promise<AccessToken> {
+  async login(user: User): Promise<AccessToken> {
     try {
       const refreshExpirationSec = parseInt(
         this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
@@ -72,7 +73,7 @@ export class AuthService {
     }
   }
 
-  async refreshTokens(user: any) {
+  async refreshTokens(user: User) {
     try {
       const refreshExpirationSec = parseInt(
         this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
