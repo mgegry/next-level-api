@@ -44,14 +44,10 @@ export class AuthService {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
 
-      response.cookie('access_token', accessToken, {
-        ...cookieOptions,
-        expires: accessExpires,
-      });
-
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
         expires: refreshExpires,
+        path: '/auth/refresh',
       });
 
       return {
@@ -63,6 +59,8 @@ export class AuthService {
         tenantId: user.tenantId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        accessToken: accessToken,
+        accessExpires: accessExpires.toISOString(),
       };
     } catch (error) {
       this.logger.error('Login error:', {
@@ -121,14 +119,10 @@ export class AuthService {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
 
-      response.cookie('access_token', accessToken, {
-        ...cookieOptions,
-        expires: accessExpires,
-      });
-
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
         expires: refreshExpires,
+        path: '/auth/refresh',
       });
 
       return {
@@ -140,6 +134,8 @@ export class AuthService {
         tenantId: user.tenantId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        accessToken: accessToken,
+        accessExpires: accessExpires.toISOString(),
       };
     } catch (error) {
       this.logger.error('Refresh tokens error:', {
@@ -207,7 +203,7 @@ export class AuthService {
   private getCookieOptions(isProd: boolean, domain: string) {
     const baseOptions: CookieOptions = {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'lax',
     };
 
     if (isProd) {

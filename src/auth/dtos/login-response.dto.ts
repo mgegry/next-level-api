@@ -7,4 +7,6 @@ export class LoginResponseDto {
   tenantId: number;
   createdAt: Date;
   updatedAt: Date;
+  accessToken: string;
+  accessExpires: string;
 }

@@ -8,13 +8,14 @@ import { RefreshResponseDto } from './dtos/refresh-response.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from 'src/user/user.entity';
 import type { Response } from 'express';
+import { CsrfGuard } from './guards/csrf.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  @UseGuards(LocalGuard)
+  @UseGuards(LocalGuard, CsrfGuard)
   async login(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
@@ -23,7 +24,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @UseGuards(JwtRefreshGuard)
+  @UseGuards(JwtRefreshGuard, CsrfGuard)
   async refreshTokens(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
@@ -32,12 +33,17 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, CsrfGuard)
   async logout(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.authService.logout(user.id, response);
+  }
+
+  @Get('csrf-token')
+  async getCsrfToken(): Promise<void> {
+    return;
   }
 
   @Get('test')
