@@ -9,6 +9,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from 'src/user/user.entity';
 import type { Response } from 'express';
 import { CsrfGuard } from './guards/csrf.guard';
+import { seconds, Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +17,7 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard, CsrfGuard)
+  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   async login(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
@@ -25,6 +27,7 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(JwtRefreshGuard, CsrfGuard)
+  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   async refreshTokens(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
@@ -44,12 +47,5 @@ export class AuthController {
   @Get('csrf-token')
   async getCsrfToken(): Promise<void> {
     return;
-  }
-
-  @Get('test')
-  @UseGuards(JwtGuard)
-  async test() {
-    console.log(await this.authService.test());
-    return [];
   }
 }

@@ -245,8 +245,4 @@ export class AuthService {
       refreshExpires: new Date(Date.now() + refreshExpiration * 1000),
     };
   }
-
-  async test() {
-    return this.configService.get('NODE_ENV');
-  }
 }
