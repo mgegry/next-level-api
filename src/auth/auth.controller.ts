@@ -11,6 +11,8 @@ import type { Response } from 'express';
 import { CsrfGuard } from './guards/csrf.guard';
 import { seconds, Throttle } from '@nestjs/throttler';
 
+//REVIEW - Might want to add Redis for IP-based login lockouts when deploying for security
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

@@ -16,10 +16,12 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       isGlobal: true,
     }),
     ThrottlerModule.forRoot({
+      //REVIEW - If revers proxy is used this has to be changed according to the documentation
+      // https://docs.nestjs.com/security/rate-limiting
       throttlers: [
         {
           ttl: seconds(60),
-          limit: 10,
+          limit: 20,
         },
       ],
     }),
