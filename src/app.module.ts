@@ -10,7 +10,10 @@ import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      envFilePath: [`config/.env.${process.env.NODE_ENV}`],
+      isGlobal: true,
+    }),
     CoreModule,
     UserModule,
     AuthModule,
