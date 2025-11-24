@@ -7,9 +7,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
-import { AccessToken } from './types/access-token.type';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/user/user.entity';
+import { CookieOptions, Response } from 'express';
+import { LoginResponseDto } from './dtos/login-response.dto';
+import { RefreshResponseDto } from './dtos/refresh-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -21,11 +23,12 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async login(user: User): Promise<AccessToken> {
+  async login(user: User, response: Response): Promise<LoginResponseDto> {
     try {
-      const refreshExpirationSec = parseInt(
-        this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
-      );
+      const isProd = this.configService.get('NODE_ENV') === 'production';
+      const domain = this.configService.get('COOKIE_DOMAIN');
+
+      const cookieOptions = this.getCookieOptions(isProd, domain);
 
       const payload = {
         id: user.id,
@@ -34,17 +37,33 @@ export class AuthService {
         role: user.role,
       };
 
-      const accessToken = this.jwtService.sign(payload);
-      const refreshToken = this.jwtService.sign(payload, {
-        secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
-        expiresIn: refreshExpirationSec,
-      });
+      const { accessToken, refreshToken, accessExpires, refreshExpires } =
+        this.generateTokens(payload);
 
       await this.userService.updateUser(user.id, {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
 
-      return { accessToken: accessToken, refreshToken: refreshToken };
+      response.cookie('access_token', accessToken, {
+        ...cookieOptions,
+        expires: accessExpires,
+      });
+
+      response.cookie('refresh_token', refreshToken, {
+        ...cookieOptions,
+        expires: refreshExpires,
+      });
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tenantId: user.tenantId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
     } catch (error) {
       this.logger.error('Login error:', {
         error: error.message,
@@ -58,11 +77,16 @@ export class AuthService {
     }
   }
 
-  async logout(userId: number) {
+  async logout(userId: number, response: Response) {
     try {
       await this.userService.updateUser(userId, {
         refreshTokenHash: null,
       });
+
+      response.clearCookie('access_token');
+      response.clearCookie('refresh_token');
+
+      response.status(200).json({ message: 'Successfully signed out' });
     } catch (error) {
       this.logger.error('Sign out error:', {
         error: error.message,
@@ -73,11 +97,15 @@ export class AuthService {
     }
   }
 
-  async refreshTokens(user: User) {
+  async refreshTokens(
+    user: User,
+    response: Response,
+  ): Promise<RefreshResponseDto> {
     try {
-      const refreshExpirationSec = parseInt(
-        this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
-      );
+      const isProd = this.configService.get('NODE_ENV') === 'production';
+      const domain = this.configService.get('COOKIE_DOMAIN');
+
+      const cookieOptions = this.getCookieOptions(isProd, domain);
 
       const payload = {
         id: user.id,
@@ -86,24 +114,43 @@ export class AuthService {
         role: user.role,
       };
 
-      const accessToken = this.jwtService.sign(payload);
-      const refreshToken = this.jwtService.sign(payload, {
-        secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
-        expiresIn: refreshExpirationSec,
-      });
+      const { accessToken, refreshToken, accessExpires, refreshExpires } =
+        this.generateTokens(payload);
 
       await this.userService.updateUser(user.id, {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
-      return { accessToken: accessToken, refreshToken: refreshToken };
+
+      response.cookie('access_token', accessToken, {
+        ...cookieOptions,
+        expires: accessExpires,
+      });
+
+      response.cookie('refresh_token', refreshToken, {
+        ...cookieOptions,
+        expires: refreshExpires,
+      });
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tenantId: user.tenantId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
     } catch (error) {
       this.logger.error('Refresh tokens error:', {
         error: error.message,
-        user: user.id,
+        userId: user.id,
         stack: error.stack,
       });
 
-      throw new UnauthorizedException('Failed to refresh tokens');
+      throw new UnauthorizedException(
+        'Failed to refresh tokens. Please try again.',
+      );
     }
   }
 
@@ -155,5 +202,55 @@ export class AuthService {
       this.logger.error('Verify user refresh token error', error);
       throw new ForbiddenException('Access Denied');
     }
+  }
+
+  private getCookieOptions(isProd: boolean, domain: string) {
+    const baseOptions: CookieOptions = {
+      httpOnly: true,
+      sameSite: 'strict',
+    };
+
+    if (isProd) {
+      return {
+        ...baseOptions,
+        secure: true,
+        domain,
+      };
+    }
+
+    return {
+      ...baseOptions,
+      secure: false,
+    };
+  }
+
+  private generateTokens(payload: any) {
+    const accessExpiration = parseInt(
+      this.configService.getOrThrow('ACCESS_TOKEN_VALIDITY_DURATION_IN_SEC'),
+    );
+    const refreshExpiration = parseInt(
+      this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
+    );
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow('JWT_SECRET'),
+      expiresIn: accessExpiration,
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
+      expiresIn: refreshExpiration,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      accessExpires: new Date(Date.now() + accessExpiration * 1000),
+      refreshExpires: new Date(Date.now() + refreshExpiration * 1000),
+    };
+  }
+
+  async test() {
+    return this.configService.get('NODE_ENV');
   }
 }
