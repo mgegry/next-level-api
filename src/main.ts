@@ -8,19 +8,46 @@ import {} from 'csrf-csrf';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const isProd = process.env.NODE_ENV === 'production';
 
-  // ENABLE CORS
+  // ----------------------------------------
+  // 1. CORS FOR ANGULAR
+  // ----------------------------------------
   app.enableCors({
     origin: 'http://localhost:4200',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  // HELMENT FOR SECURITY
-  app.use(helmet());
+  // ----------------------------------------
+  // 2. HELMET SECURITY
+  // ----------------------------------------
+  app.use(
+    helmet({
+      // Angular often loads resources across origins → this prevents blocking
+      crossOriginResourcePolicy: false,
+    }),
+  );
+
+  // Enable stricter HSTS only in PRODUCTION (never enable this on localhost!)
+  if (isProd) {
+    app.use(
+      helmet.hsts({
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true, // allow chrome preload list (optional)
+      }),
+    );
+  }
+
+  // ----------------------------------------
+  // 3. COOKIE PARSER (must be after helmet)
+  // ----------------------------------------
   app.use(cookieParser());
 
-  // SETUP SWAGGER
+  // ----------------------------------------
+  // 4. SWAGGER SETUP
+  // ----------------------------------------
   const config = new DocumentBuilder()
     .setTitle('ERP HUB API')
     .setDescription('The endpoints to the erp hub')
@@ -29,10 +56,15 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  // SETUP LOGGER
+  // ----------------------------------------
+  // 5. CUSTOM LOGGER
+  // ----------------------------------------
   app.useLogger(new Logger());
 
-  // START APP
+  // ----------------------------------------
+  // 6. START SERVER
+  // ----------------------------------------
   await app.listen(process.env.PORT ?? 3333);
+  console.log(`🚀 Server running on port ${process.env.PORT ?? 3333}`);
 }
 bootstrap();
