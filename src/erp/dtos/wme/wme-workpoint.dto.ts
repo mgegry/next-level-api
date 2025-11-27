@@ -1,0 +1,41 @@
+export interface WmeWorkpointDto {
+  Denumire: string;
+  IDSediu: string;
+  CodSediu: string;
+  GLN: string;
+  Localitate: string;
+  Strada: string;
+  Sector: string;
+  Numar: string;
+  Numar2: string;
+  Bloc: string;
+  Scara: string;
+  Etaj: string;
+  Apartament: string;
+  Judet: string;
+  Tara: string;
+  CodPostal: string;
+  CodSiruta: string;
+  Email: string;
+  Telefon: string;
+  Latitudine: string;
+  Longitudine: string;
+  TraseuLivrare: string;
+  PozTraseuLivrare: string;
+  TraseuVizitare: string;
+  PozTraseuVizitare: string;
+  GestiuneLivrare: string;
+  SimbolGestLivrare: string;
+  CodSubunitate: string;
+  Subunitate: string;
+  Inactiv: string;
+  CodClient: string;
+  TipSediu: string;
+  ScadentaLaVanzare: string;
+  ZileDepasire: string;
+  Agent?: {
+    Marca: string;
+    Nume: string;
+    Prenume: string;
+  };
+}
