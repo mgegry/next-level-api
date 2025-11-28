@@ -6,8 +6,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
-import { CsrfCookieMiddleware } from './csrf-cookie-middleware';
-import cookieParser from 'cookie-parser';
+import { CsrfCookieMiddleware } from '../core/middleware/csrf-cookie-middleware';
 
 @Module({
   imports: [UserModule, JwtModule],

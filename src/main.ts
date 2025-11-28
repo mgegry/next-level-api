@@ -5,13 +5,19 @@ import { Logger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import {} from 'csrf-csrf';
+import { NetworkErrorInterceptor } from './core/interceptors/network-error.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const isProd = process.env.NODE_ENV === 'production';
 
   // ----------------------------------------
-  // 1. CORS FOR ANGULAR
+  // GLOBAL INTERCEPTORS
+  // ----------------------------------------
+  app.useGlobalInterceptors(new NetworkErrorInterceptor());
+
+  // ----------------------------------------
+  // CORS FOR ANGULAR
   // ----------------------------------------
   app.enableCors({
     origin: 'http://localhost:4200',
@@ -20,7 +26,7 @@ async function bootstrap() {
   });
 
   // ----------------------------------------
-  // 2. HELMET SECURITY
+  // HELMET SECURITY
   // ----------------------------------------
   app.use(
     helmet({
@@ -41,12 +47,12 @@ async function bootstrap() {
   }
 
   // ----------------------------------------
-  // 3. COOKIE PARSER (must be after helmet)
+  // COOKIE PARSER (must be after helmet)
   // ----------------------------------------
   app.use(cookieParser());
 
   // ----------------------------------------
-  // 4. SWAGGER SETUP
+  // SWAGGER SETUP
   // ----------------------------------------
   const config = new DocumentBuilder()
     .setTitle('ERP HUB API')
@@ -57,12 +63,12 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   // ----------------------------------------
-  // 5. CUSTOM LOGGER
+  // CUSTOM LOGGER
   // ----------------------------------------
   app.useLogger(new Logger());
 
   // ----------------------------------------
-  // 6. START SERVER
+  // START SERVER
   // ----------------------------------------
   await app.listen(process.env.PORT ?? 3333);
   console.log(`🚀 Server running on port ${process.env.PORT ?? 3333}`);
