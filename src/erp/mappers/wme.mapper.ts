@@ -1,5 +1,7 @@
+import { ItemDto } from '../dtos/response/item.dto';
 import { PartnerDto } from '../dtos/response/partner.dto';
 import { WorkpointDto } from '../dtos/response/workpoint.dto';
+import { WmeItemDto } from '../dtos/wme/wme-item.dto';
 import { WmePartnerDto } from '../dtos/wme/wme-partner.dto';
 import { WmeWorkpointDto } from '../dtos/wme/wme-workpoint.dto';
 
@@ -27,6 +29,17 @@ export class WmeMapper {
       number: raw.Numar,
       agentFirstName: raw.Agent?.Prenume ?? '',
       agentLastName: raw.Agent?.Nume ?? '',
+    };
+  }
+
+  static toItemDto(raw: WmeItemDto): ItemDto {
+    return {
+      id: raw.CodArticol,
+      name: raw.Denumire,
+      salePrice: raw.PretVanzare,
+      priceWithVAT: raw.PretCuTVA,
+      foreignCurrencyPrice: raw.PretValuta,
+      vatPercentage: raw.ProcentTVA,
     };
   }
 }

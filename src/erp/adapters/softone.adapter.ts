@@ -3,6 +3,8 @@ import { IErpAdapter } from '../erp-adapter.interface';
 import { firstValueFrom } from 'rxjs';
 import { SoftoneLoginResponseDto } from '../dtos/softone/softone-login-reponse.type';
 import { SoftoneAuthenticateResponseDto } from '../dtos/softone/softone-authenticate-reponse.type';
+import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
+import { ItemDto } from '../dtos/response/item.dto';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;
@@ -14,7 +16,14 @@ export class SoftoneAdapter implements IErpAdapter {
     private readonly http: HttpService,
   ) {}
 
-  public async getClients(): Promise<any> {
+  async getItems(
+    pageNumber: number,
+    pageElementsNumber: number,
+  ): Promise<PaginatedResponseDto<ItemDto>> {
+    throw new Error('Method not implemented.');
+  }
+
+  async getClients(): Promise<any> {
     const token = await this.getToken();
 
     const response = await firstValueFrom(
@@ -28,7 +37,7 @@ export class SoftoneAdapter implements IErpAdapter {
     return response.data;
   }
 
-  public async getToken(): Promise<string> {
+  async getToken(): Promise<string> {
     if (this.clientId) return this.clientId;
 
     if (this.isAuthenticating && this.authPromise) {

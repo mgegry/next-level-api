@@ -18,4 +18,14 @@ export class ErpController {
   ) {
     return this.erpService.getClients(user, pageNumber, pageSize);
   }
+
+  @Get('items')
+  @UseGuards(JwtGuard, CsrfGuard)
+  async getItems(
+    @CurrentUser() user: User,
+    @Query('pageNumber') pageNumber: number,
+    @Query('pageSize') pageSize: number,
+  ) {
+    return this.erpService.getItems(user, pageNumber, pageSize);
+  }
 }

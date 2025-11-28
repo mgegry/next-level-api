@@ -16,4 +16,15 @@ export class ErpService {
     const adapter = await this.factory.getAdapterForTenant(tenantId);
     return await adapter.getClients(pageNumber, pageSize);
   }
+
+  async getItems(user: User, pageNumber: number, pageSize: number) {
+    const tenantId = user.tenantId;
+
+    if (!tenantId) {
+      throw new UnauthorizedException('Not a valid tenantId');
+    }
+
+    const adapter = await this.factory.getAdapterForTenant(tenantId);
+    return await adapter.getItems(pageNumber, pageSize);
+  }
 }

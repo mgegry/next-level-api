@@ -5,6 +5,8 @@ import { PartnerDto } from '../dtos/response/partner.dto';
 import { WmeMapper } from '../mappers/wme.mapper';
 import { WmePartnerResponseDto } from '../dtos/wme/wme-partner.dto';
 import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
+import { WmeItemResponseDto } from '../dtos/wme/wme-item.dto';
+import { ItemDto } from '../dtos/response/item.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(
@@ -12,7 +14,37 @@ export class WmeAdapter implements IErpAdapter {
     private readonly http: HttpService,
   ) {}
 
-  public async getClients(
+  async getItems(
+    pageNumber: number,
+    pageElementsNumber: number,
+  ): Promise<PaginatedResponseDto<ItemDto>> {
+    const payload = {
+      Paginare: {
+        Pagina: pageNumber,
+        Inregistrari: pageElementsNumber,
+      },
+    };
+
+    const response = await firstValueFrom(
+      this.http.post<WmeItemResponseDto>(
+        `${this.config.wme_base_url}/%22GetInfoArticole%22`,
+        payload,
+      ),
+    );
+
+    const items = response.data.InfoArticole.map(WmeMapper.toItemDto);
+    const pagination = response.data.Paginare;
+
+    return {
+      data: items,
+      pagination: {
+        totalPages: Number(pagination.TotalPagini),
+        page: Number(pagination.Pagina),
+      },
+    };
+  }
+
+  async getClients(
     pageNumber: number,
     pageElementsNumber: number,
   ): Promise<PaginatedResponseDto<PartnerDto>> {
