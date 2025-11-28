@@ -29,7 +29,7 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(JwtRefreshGuard, CsrfGuard)
-  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
+  @Throttle({ default: { ttl: seconds(60), limit: 30 } })
   async refreshTokens(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,

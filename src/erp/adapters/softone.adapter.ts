@@ -5,6 +5,8 @@ import { SoftoneLoginResponseDto } from '../dtos/softone/softone-login-reponse.t
 import { SoftoneAuthenticateResponseDto } from '../dtos/softone/softone-authenticate-reponse.type';
 import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
 import { ItemDto } from '../dtos/response/item.dto';
+import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
+import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;
@@ -15,6 +17,10 @@ export class SoftoneAdapter implements IErpAdapter {
     private readonly config: Record<string, any>,
     private readonly http: HttpService,
   ) {}
+
+  async getDashboard(): Promise<DataResponseDto<DashboardDataDto>> {
+    throw new Error('Method not implemented.');
+  }
 
   async getItems(
     pageNumber: number,

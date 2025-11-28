@@ -9,6 +9,12 @@ import { User } from 'src/user/user.entity';
 export class ErpController {
   constructor(private readonly erpService: ErpService) {}
 
+  @Get('dashboard')
+  @UseGuards(JwtGuard, CsrfGuard)
+  async getDashboard(@CurrentUser() user: User) {
+    return this.erpService.getDashboard(user);
+  }
+
   @Get('partners')
   @UseGuards(JwtGuard, CsrfGuard)
   async getPartners(
