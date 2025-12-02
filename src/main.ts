@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import {} from 'csrf-csrf';
@@ -15,6 +15,17 @@ async function bootstrap() {
   // GLOBAL INTERCEPTORS
   // ----------------------------------------
   app.useGlobalInterceptors(new NetworkErrorInterceptor());
+
+  // ----------------------------------------
+  // GLOBAL PIPES (Add this section)
+  // ----------------------------------------
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Key for your "Two Query Object" approach
+      transform: true, // Key for converting "1" (string) to 1 (number)
+      // forbidNonWhitelisted: true, // Optional: Throws error if user sends extra params
+    }),
+  );
 
   // ----------------------------------------
   // CORS FOR ANGULAR

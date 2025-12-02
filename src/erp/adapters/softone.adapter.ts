@@ -1,5 +1,4 @@
 import { HttpService } from '@nestjs/axios';
-import { IErpAdapter } from '../erp-adapter.interface';
 import { firstValueFrom } from 'rxjs';
 import { SoftoneLoginResponseDto } from '../dtos/softone/softone-login-reponse.type';
 import { SoftoneAuthenticateResponseDto } from '../dtos/softone/softone-authenticate-reponse.type';
@@ -7,6 +6,7 @@ import { PaginatedResponseDto } from '../dtos/response/common/paginated-response
 import { ItemDto } from '../dtos/response/item.dto';
 import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
 import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
+import { IErpAdapter } from './erp-adapter.interface';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;
@@ -29,7 +29,7 @@ export class SoftoneAdapter implements IErpAdapter {
     throw new Error('Method not implemented.');
   }
 
-  async getClients(): Promise<any> {
+  async getPartners(): Promise<any> {
     const token = await this.getToken();
 
     const response = await firstValueFrom(

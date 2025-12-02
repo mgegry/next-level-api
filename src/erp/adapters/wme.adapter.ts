@@ -1,5 +1,4 @@
 import { HttpService } from '@nestjs/axios';
-import { IErpAdapter } from '../erp-adapter.interface';
 import { firstValueFrom, Observable } from 'rxjs';
 import { PartnerDto } from '../dtos/response/partner.dto';
 import { WmeMapper } from '../mappers/wme.mapper';
@@ -10,6 +9,8 @@ import { ItemDto } from '../dtos/response/item.dto';
 import { WmeAccountsReceivableResponseDto } from '../dtos/wme/wme-accounts-receivable.dto';
 import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
 import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
+import { IErpAdapter } from './erp-adapter.interface';
+import { PartnersFilterRequestDto } from '../dtos/request/partners-filter-request.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(
@@ -47,15 +48,18 @@ export class WmeAdapter implements IErpAdapter {
     };
   }
 
-  async getClients(
+  async getPartners(
     pageNumber: number,
     pageElementsNumber: number,
+    filters: PartnersFilterRequestDto,
   ): Promise<PaginatedResponseDto<PartnerDto>> {
     const payload = {
       Paginare: {
         Pagina: pageNumber,
         Inregistrari: pageElementsNumber,
       },
+      Denumire: filters.name ?? '',
+      CodFiscal: filters.fiscalCode ?? '',
     };
 
     const response = await firstValueFrom(

@@ -3,7 +3,7 @@ import { ErpController } from './erp.controller';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { CryptoModule } from 'src/core/crypto/crypto.module';
 import { HttpModule } from '@nestjs/axios';
-import { ErpAdapterFactoryService } from './erp-adapter-factory.service';
+import { ErpAdapterFactoryService } from './adapters/erp-adapter-factory.service';
 import { ErpService } from './erp.service';
 
 @Module({

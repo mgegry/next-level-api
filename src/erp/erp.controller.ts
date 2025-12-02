@@ -4,6 +4,8 @@ import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { CsrfGuard } from 'src/auth/guards/csrf.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { User } from 'src/user/user.entity';
+import { PaginatedRequestDto } from './dtos/request/paginated-request.dto';
+import { PartnersFilterRequestDto } from './dtos/request/partners-filter-request.dto';
 
 @Controller('erp')
 export class ErpController {
@@ -19,19 +21,27 @@ export class ErpController {
   @UseGuards(JwtGuard, CsrfGuard)
   async getPartners(
     @CurrentUser() user: User,
-    @Query('pageNumber') pageNumber: number,
-    @Query('pageSize') pageSize: number,
+    @Query() pagination: PaginatedRequestDto,
+    @Query() filters: PartnersFilterRequestDto,
   ) {
-    return this.erpService.getClients(user, pageNumber, pageSize);
+    return this.erpService.getPartners(
+      user,
+      pagination.pageNumber,
+      pagination.pageSize,
+      filters,
+    );
   }
 
   @Get('items')
   @UseGuards(JwtGuard, CsrfGuard)
   async getItems(
     @CurrentUser() user: User,
-    @Query('pageNumber') pageNumber: number,
-    @Query('pageSize') pageSize: number,
+    @Query() pagination: PaginatedRequestDto,
   ) {
-    return this.erpService.getItems(user, pageNumber, pageSize);
+    return this.erpService.getItems(
+      user,
+      pagination.pageNumber,
+      pagination.pageSize,
+    );
   }
 }
