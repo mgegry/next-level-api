@@ -6,6 +6,7 @@ import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { User } from 'src/user/user.entity';
 import { PaginatedRequestDto } from './dtos/request/paginated-request.dto';
 import { PartnersFilterRequestDto } from './dtos/request/partners-filter-request.dto';
+import { ItemsFilterRequestDto } from './dtos/request/items-filter-request.dto';
 
 @Controller('erp')
 export class ErpController {
@@ -37,11 +38,13 @@ export class ErpController {
   async getItems(
     @CurrentUser() user: User,
     @Query() pagination: PaginatedRequestDto,
+    @Query() filters: ItemsFilterRequestDto,
   ) {
     return this.erpService.getItems(
       user,
       pagination.pageNumber,
       pagination.pageSize,
+      filters,
     );
   }
 }

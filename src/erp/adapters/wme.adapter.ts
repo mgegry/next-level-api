@@ -11,6 +11,7 @@ import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
 import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
 import { IErpAdapter } from './erp-adapter.interface';
 import { PartnersFilterRequestDto } from '../dtos/request/partners-filter-request.dto';
+import { ItemsFilterRequestDto } from '../dtos/request/items-filter-request.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(
@@ -21,12 +22,14 @@ export class WmeAdapter implements IErpAdapter {
   async getItems(
     pageNumber: number,
     pageElementsNumber: number,
+    filters: ItemsFilterRequestDto,
   ): Promise<PaginatedResponseDto<ItemDto>> {
     const payload = {
       Paginare: {
         Pagina: pageNumber,
         Inregistrari: pageElementsNumber,
       },
+      Denumire: filters.name ?? '',
     };
 
     const response = await firstValueFrom(
