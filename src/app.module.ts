@@ -8,8 +8,6 @@ import { ErpModule } from './erp/erp.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { WmeModule } from './wme/wme.module';
-import { SoftoneModule } from './softone/softone.module';
 
 @Module({
   imports: [
@@ -32,8 +30,6 @@ import { SoftoneModule } from './softone/softone.module';
     AuthModule,
     TenantModule,
     ErpModule,
-    WmeModule,
-    SoftoneModule,
   ],
   controllers: [],
   providers: [

@@ -3,6 +3,7 @@ import { ErpAdapterFactoryService } from './adapters/erp-adapter-factory.service
 import { User } from 'src/user/user.entity';
 import { PartnersFilterRequestDto } from './dtos/request/partners-filter-request.dto';
 import { ItemsFilterRequestDto } from './dtos/request/items-filter-request.dto';
+import { PaginatedRequestDto } from './dtos/request/paginated-request.dto';
 
 @Injectable()
 export class ErpService {
@@ -10,8 +11,7 @@ export class ErpService {
 
   async getPartners(
     user: User,
-    pageNumber: number,
-    pageSize: number,
+    pagination: PaginatedRequestDto,
     filters: PartnersFilterRequestDto,
   ) {
     const tenantId = user.tenantId;
@@ -21,13 +21,12 @@ export class ErpService {
     }
 
     const adapter = await this.factory.getAdapterForTenant(tenantId);
-    return await adapter.getPartners(pageNumber, pageSize, filters);
+    return await adapter.getPartners(pagination, filters);
   }
 
   async getItems(
     user: User,
-    pageNumber: number,
-    pageSize: number,
+    pagination: PaginatedRequestDto,
     filters: ItemsFilterRequestDto,
   ) {
     const tenantId = user.tenantId;
@@ -37,7 +36,7 @@ export class ErpService {
     }
 
     const adapter = await this.factory.getAdapterForTenant(tenantId);
-    return await adapter.getItems(pageNumber, pageSize, filters);
+    return await adapter.getItems(pagination, filters);
   }
 
   async getDashboard(user: User) {

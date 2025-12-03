@@ -1,21 +1,25 @@
-import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
-import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
-import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
-import { ItemDto } from '../dtos/response/item.dto';
-import { PartnerDto } from '../dtos/response/partner.dto';
+import { DataResponseDto } from '../dtos/common/data-resposne.dto';
+import { PaginatedResponseDto } from '../dtos/common/paginated-response.dto';
+import { DashboardDataDto } from '../dtos/domain/dashboard-data.dto';
+import { ItemDto } from '../dtos/domain/item.dto';
+import { PartnerDto } from '../dtos/domain/partner.dto';
+import { PaginatedRequestDto } from '../dtos/request/paginated-request.dto';
 
 export interface IErpAdapter {
+  getDashboard(): Promise<DataResponseDto<DashboardDataDto>>;
+
   getPartners(
-    pageNumber: number,
-    pageElementsNumber: number,
+    pagination: PaginatedRequestDto,
     filters: any,
   ): Promise<PaginatedResponseDto<PartnerDto>>;
 
   getItems(
-    pageNumber: number,
-    pageElementsNumber: number,
+    pagination: PaginatedRequestDto,
     filters: any,
   ): Promise<PaginatedResponseDto<ItemDto>>;
 
-  getDashboard(): Promise<DataResponseDto<DashboardDataDto>>;
+  getPurchaseInvoices(
+    pagination: PaginatedRequestDto,
+    filters: any,
+  ): Promise<PaginatedResponseDto<any>>;
 }

@@ -25,12 +25,7 @@ export class ErpController {
     @Query() pagination: PaginatedRequestDto,
     @Query() filters: PartnersFilterRequestDto,
   ) {
-    return this.erpService.getPartners(
-      user,
-      pagination.pageNumber,
-      pagination.pageSize,
-      filters,
-    );
+    return this.erpService.getPartners(user, pagination, filters);
   }
 
   @Get('items')
@@ -40,11 +35,6 @@ export class ErpController {
     @Query() pagination: PaginatedRequestDto,
     @Query() filters: ItemsFilterRequestDto,
   ) {
-    return this.erpService.getItems(
-      user,
-      pagination.pageNumber,
-      pagination.pageSize,
-      filters,
-    );
+    return this.erpService.getItems(user, pagination, filters);
   }
 }

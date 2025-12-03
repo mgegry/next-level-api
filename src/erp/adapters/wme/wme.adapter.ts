@@ -1,17 +1,18 @@
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom, Observable } from 'rxjs';
-import { PartnerDto } from '../erp/dtos/response/partner.dto';
+import { firstValueFrom } from 'rxjs';
 import { WmeMapper } from './wme.mapper';
 import { WmePartnerResponseDto } from './dtos/wme-partner.dto';
-import { PaginatedResponseDto } from '../erp/dtos/response/common/paginated-response.dto';
 import { WmeItemResponseDto } from './dtos/wme-item.dto';
-import { ItemDto } from '../erp/dtos/response/item.dto';
 import { WmeAccountsReceivableResponseDto } from './dtos/wme-accounts-receivable.dto';
-import { DataResponseDto } from '../erp/dtos/response/common/data-resposne.dto';
-import { DashboardDataDto } from '../erp/dtos/response/dashboard-data.dto';
-import { IErpAdapter } from '../erp/adapters/erp-adapter.interface';
-import { PartnersFilterRequestDto } from '../erp/dtos/request/partners-filter-request.dto';
-import { ItemsFilterRequestDto } from '../erp/dtos/request/items-filter-request.dto';
+import { PaginatedRequestDto } from 'src/erp/dtos/request/paginated-request.dto';
+import { IErpAdapter } from '../erp-adapter.interface';
+import { ItemsFilterRequestDto } from 'src/erp/dtos/request/items-filter-request.dto';
+import { PartnersFilterRequestDto } from 'src/erp/dtos/request/partners-filter-request.dto';
+import { ItemDto } from 'src/erp/dtos/domain/item.dto';
+import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
+import { DashboardDataDto } from 'src/erp/dtos/domain/dashboard-data.dto';
+import { PaginatedResponseDto } from 'src/erp/dtos/common/paginated-response.dto';
+import { DataResponseDto } from 'src/erp/dtos/common/data-resposne.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(
@@ -19,15 +20,21 @@ export class WmeAdapter implements IErpAdapter {
     private readonly http: HttpService,
   ) {}
 
+  getPurchaseInvoices(
+    pagination: PaginatedRequestDto,
+    filters: any,
+  ): Promise<PaginatedResponseDto<any>> {
+    throw new Error('Method not implemented.');
+  }
+
   async getItems(
-    pageNumber: number,
-    pageElementsNumber: number,
+    pagination: PaginatedRequestDto,
     filters: ItemsFilterRequestDto,
   ): Promise<PaginatedResponseDto<ItemDto>> {
     const payload = {
       Paginare: {
-        Pagina: pageNumber,
-        Inregistrari: pageElementsNumber,
+        Pagina: pagination.pageNumber,
+        Inregistrari: pagination.pageSize,
       },
       Denumire: filters.name ?? '',
     };
@@ -39,27 +46,26 @@ export class WmeAdapter implements IErpAdapter {
       ),
     );
 
-    const items = response.data.InfoArticole.map(WmeMapper.toItemDto);
-    const pagination = response.data.Paginare;
+    const itemsResponse = response.data.InfoArticole.map(WmeMapper.toItemDto);
+    const paginationResponse = response.data.Paginare;
 
     return {
-      data: items,
+      data: itemsResponse,
       pagination: {
-        totalPages: Number(pagination.TotalPagini),
-        page: Number(pagination.Pagina),
+        totalPages: Number(paginationResponse.TotalPagini),
+        page: Number(paginationResponse.Pagina),
       },
     };
   }
 
   async getPartners(
-    pageNumber: number,
-    pageElementsNumber: number,
+    pagination: PaginatedRequestDto,
     filters: PartnersFilterRequestDto,
   ): Promise<PaginatedResponseDto<PartnerDto>> {
     const payload = {
       Paginare: {
-        Pagina: pageNumber,
-        Inregistrari: pageElementsNumber,
+        Pagina: pagination.pageNumber,
+        Inregistrari: pagination.pageSize,
       },
       Denumire: filters.name ?? '',
       CodFiscal: filters.fiscalCode ?? '',
@@ -72,14 +78,16 @@ export class WmeAdapter implements IErpAdapter {
       ),
     );
 
-    const partners = response.data.InfoParteneri.map(WmeMapper.toPartnerDto);
-    const pagination = response.data.Paginare;
+    const partnersResponse = response.data.InfoParteneri.map(
+      WmeMapper.toPartnerDto,
+    );
+    const paginationResponse = response.data.Paginare;
 
     return {
-      data: partners,
+      data: partnersResponse,
       pagination: {
-        totalPages: Number(pagination.TotalPagini),
-        page: Number(pagination.Pagina),
+        totalPages: Number(paginationResponse.TotalPagini),
+        page: Number(paginationResponse.Pagina),
       },
     };
   }

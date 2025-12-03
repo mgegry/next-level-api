@@ -1,12 +1,15 @@
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { PaginatedResponseDto } from '../erp/dtos/response/common/paginated-response.dto';
-import { ItemDto } from '../erp/dtos/response/item.dto';
-import { DataResponseDto } from '../erp/dtos/response/common/data-resposne.dto';
-import { DashboardDataDto } from '../erp/dtos/response/dashboard-data.dto';
-import { IErpAdapter } from '../erp/adapters/erp-adapter.interface';
-import { SoftoneLoginResponseDto } from 'src/softone/dtos/softone-login-reponse.type';
-import { SoftoneAuthenticateResponseDto } from 'src/softone/dtos/softone-authenticate-reponse.type';
+import { PaginatedRequestDto } from 'src/erp/dtos/request/paginated-request.dto';
+import { IErpAdapter } from '../erp-adapter.interface';
+
+import { SoftoneLoginResponseDto } from './dtos/softone-login-reponse.type';
+import { SoftoneAuthenticateResponseDto } from './dtos/softone-authenticate-reponse.type';
+import { DashboardDataDto } from 'src/erp/dtos/domain/dashboard-data.dto';
+import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
+import { ItemDto } from 'src/erp/dtos/domain/item.dto';
+import { PaginatedResponseDto } from 'src/erp/dtos/common/paginated-response.dto';
+import { DataResponseDto } from 'src/erp/dtos/common/data-resposne.dto';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;
@@ -18,30 +21,44 @@ export class SoftoneAdapter implements IErpAdapter {
     private readonly http: HttpService,
   ) {}
 
-  async getDashboard(): Promise<DataResponseDto<DashboardDataDto>> {
+  getPartners(
+    pagination: PaginatedRequestDto,
+    filters: any,
+  ): Promise<PaginatedResponseDto<PartnerDto>> {
     throw new Error('Method not implemented.');
   }
 
-  async getItems(
-    pageNumber: number,
-    pageElementsNumber: number,
+  getItems(
+    pagination: PaginatedRequestDto,
+    filters: any,
   ): Promise<PaginatedResponseDto<ItemDto>> {
     throw new Error('Method not implemented.');
   }
 
-  async getPartners(): Promise<any> {
-    const token = await this.getToken();
-
-    const response = await firstValueFrom(
-      this.http.post<any>(this.config.softone_base_url, {
-        service: 'getObjects',
-        clientID: token,
-        appId: this.config.softone_app_id,
-      }),
-    );
-
-    return response.data;
+  getPurchaseInvoices(
+    pagination: PaginatedRequestDto,
+    filters: any,
+  ): Promise<PaginatedResponseDto<any>> {
+    throw new Error('Method not implemented.');
   }
+
+  async getDashboard(): Promise<DataResponseDto<DashboardDataDto>> {
+    throw new Error('Method not implemented.');
+  }
+
+  // async getPartners(): Promise<any> {
+  //   const token = await this.getToken();
+
+  //   const response = await firstValueFrom(
+  //     this.http.post<any>(this.config.softone_base_url, {
+  //       service: 'getObjects',
+  //       clientID: token,
+  //       appId: this.config.softone_app_id,
+  //     }),
+  //   );
+
+  //   return response.data;
+  // }
 
   async getToken(): Promise<string> {
     if (this.clientId) return this.clientId;
