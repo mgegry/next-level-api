@@ -1,12 +1,12 @@
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { SoftoneLoginResponseDto } from '../dtos/softone/softone-login-reponse.type';
-import { SoftoneAuthenticateResponseDto } from '../dtos/softone/softone-authenticate-reponse.type';
-import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
-import { ItemDto } from '../dtos/response/item.dto';
-import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
-import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
-import { IErpAdapter } from './erp-adapter.interface';
+import { PaginatedResponseDto } from '../erp/dtos/response/common/paginated-response.dto';
+import { ItemDto } from '../erp/dtos/response/item.dto';
+import { DataResponseDto } from '../erp/dtos/response/common/data-resposne.dto';
+import { DashboardDataDto } from '../erp/dtos/response/dashboard-data.dto';
+import { IErpAdapter } from '../erp/adapters/erp-adapter.interface';
+import { SoftoneLoginResponseDto } from 'src/softone/dtos/softone-login-reponse.type';
+import { SoftoneAuthenticateResponseDto } from 'src/softone/dtos/softone-authenticate-reponse.type';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;

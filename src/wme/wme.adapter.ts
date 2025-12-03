@@ -1,17 +1,17 @@
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom, Observable } from 'rxjs';
-import { PartnerDto } from '../dtos/response/partner.dto';
-import { WmeMapper } from '../mappers/wme.mapper';
-import { WmePartnerResponseDto } from '../dtos/wme/wme-partner.dto';
-import { PaginatedResponseDto } from '../dtos/response/common/paginated-response.dto';
-import { WmeItemResponseDto } from '../dtos/wme/wme-item.dto';
-import { ItemDto } from '../dtos/response/item.dto';
-import { WmeAccountsReceivableResponseDto } from '../dtos/wme/wme-accounts-receivable.dto';
-import { DataResponseDto } from '../dtos/response/common/data-resposne.dto';
-import { DashboardDataDto } from '../dtos/response/dashboard-data.dto';
-import { IErpAdapter } from './erp-adapter.interface';
-import { PartnersFilterRequestDto } from '../dtos/request/partners-filter-request.dto';
-import { ItemsFilterRequestDto } from '../dtos/request/items-filter-request.dto';
+import { PartnerDto } from '../erp/dtos/response/partner.dto';
+import { WmeMapper } from './wme.mapper';
+import { WmePartnerResponseDto } from './dtos/wme-partner.dto';
+import { PaginatedResponseDto } from '../erp/dtos/response/common/paginated-response.dto';
+import { WmeItemResponseDto } from './dtos/wme-item.dto';
+import { ItemDto } from '../erp/dtos/response/item.dto';
+import { WmeAccountsReceivableResponseDto } from './dtos/wme-accounts-receivable.dto';
+import { DataResponseDto } from '../erp/dtos/response/common/data-resposne.dto';
+import { DashboardDataDto } from '../erp/dtos/response/dashboard-data.dto';
+import { IErpAdapter } from '../erp/adapters/erp-adapter.interface';
+import { PartnersFilterRequestDto } from '../erp/dtos/request/partners-filter-request.dto';
+import { ItemsFilterRequestDto } from '../erp/dtos/request/items-filter-request.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(

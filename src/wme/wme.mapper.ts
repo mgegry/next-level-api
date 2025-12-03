@@ -1,9 +1,9 @@
-import { ItemDto } from '../dtos/response/item.dto';
-import { PartnerDto } from '../dtos/response/partner.dto';
-import { WorkpointDto } from '../dtos/response/workpoint.dto';
-import { WmeItemDto } from '../dtos/wme/wme-item.dto';
-import { WmePartnerDto } from '../dtos/wme/wme-partner.dto';
-import { WmeWorkpointDto } from '../dtos/wme/wme-workpoint.dto';
+import { ItemDto } from '../erp/dtos/response/item.dto';
+import { PartnerDto } from '../erp/dtos/response/partner.dto';
+import { WorkpointDto } from '../erp/dtos/response/workpoint.dto';
+import { WmeItemDto } from './dtos/wme-item.dto';
+import { WmePartnerDto } from './dtos/wme-partner.dto';
+import { WmeWorkpointDto } from './dtos/wme-workpoint.dto';
 
 export class WmeMapper {
   static toPartnerDto(raw: WmePartnerDto): PartnerDto {
