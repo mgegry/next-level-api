@@ -13,6 +13,8 @@ import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
 import { DashboardDataDto } from 'src/erp/dtos/domain/dashboard-data.dto';
 import { PaginatedResponseDto } from 'src/erp/dtos/common/paginated-response.dto';
 import { DataResponseDto } from 'src/erp/dtos/common/data-resposne.dto';
+import { WmePurchaseInvoiceResponseDto } from './dtos/wme-purchase-invoice.dto';
+import { PurchaseInvoiceDto } from 'src/erp/dtos/domain/purchase-invoice.dto';
 
 export class WmeAdapter implements IErpAdapter {
   constructor(
@@ -20,11 +22,31 @@ export class WmeAdapter implements IErpAdapter {
     private readonly http: HttpService,
   ) {}
 
-  getPurchaseInvoices(
+  async getPurchaseInvoices(
     pagination: PaginatedRequestDto,
     filters: any,
-  ): Promise<PaginatedResponseDto<any>> {
-    throw new Error('Method not implemented.');
+  ): Promise<DataResponseDto<PurchaseInvoiceDto>> {
+    const payload = {
+      Paginare: {
+        Pagina: pagination.pageNumber,
+        Inregistrari: pagination.pageSize,
+      },
+    };
+
+    const response = await firstValueFrom(
+      this.http.post<WmePurchaseInvoiceResponseDto>(
+        `${this.config.wme_base_url}/%22GetInfoFacturiFurnizori%22`,
+        payload,
+      ),
+    );
+
+    const itemsResponse = response.data.InfoFacturi.map(
+      WmeMapper.toPurchaseInvoiceDto,
+    );
+
+    return {
+      data: itemsResponse,
+    };
   }
 
   async getItems(

@@ -9,6 +9,17 @@ import { PaginatedRequestDto } from './dtos/request/paginated-request.dto';
 export class ErpService {
   constructor(private readonly factory: ErpAdapterFactoryService) {}
 
+  async getDashboard(user: User) {
+    const tenantId = user.tenantId;
+
+    if (!tenantId) {
+      throw new UnauthorizedException('Not a valid tenantId');
+    }
+
+    const adapter = await this.factory.getAdapterForTenant(tenantId);
+    return await adapter.getDashboard();
+  }
+
   async getPartners(
     user: User,
     pagination: PaginatedRequestDto,
@@ -39,7 +50,11 @@ export class ErpService {
     return await adapter.getItems(pagination, filters);
   }
 
-  async getDashboard(user: User) {
+  async getPurchaseInvoices(
+    user: User,
+    pagination: PaginatedRequestDto,
+    filters: ItemsFilterRequestDto,
+  ) {
     const tenantId = user.tenantId;
 
     if (!tenantId) {
@@ -47,6 +62,6 @@ export class ErpService {
     }
 
     const adapter = await this.factory.getAdapterForTenant(tenantId);
-    return await adapter.getDashboard();
+    return await adapter.getPurchaseInvoices(pagination, filters);
   }
 }

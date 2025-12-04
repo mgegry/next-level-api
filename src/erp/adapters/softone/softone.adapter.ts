@@ -10,6 +10,7 @@ import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
 import { ItemDto } from 'src/erp/dtos/domain/item.dto';
 import { PaginatedResponseDto } from 'src/erp/dtos/common/paginated-response.dto';
 import { DataResponseDto } from 'src/erp/dtos/common/data-resposne.dto';
+import { PurchaseInvoiceDto } from 'src/erp/dtos/domain/purchase-invoice.dto';
 
 export class SoftoneAdapter implements IErpAdapter {
   private clientId: string | null = null;
@@ -38,7 +39,7 @@ export class SoftoneAdapter implements IErpAdapter {
   getPurchaseInvoices(
     pagination: PaginatedRequestDto,
     filters: any,
-  ): Promise<PaginatedResponseDto<any>> {
+  ): Promise<DataResponseDto<PurchaseInvoiceDto>> {
     throw new Error('Method not implemented.');
   }
 

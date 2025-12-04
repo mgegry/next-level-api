@@ -4,6 +4,9 @@ import { WmePartnerDto } from './dtos/wme-partner.dto';
 import { WmeWorkpointDto } from './dtos/wme-workpoint.dto';
 import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
 import { ItemDto } from 'src/erp/dtos/domain/item.dto';
+import { WmePurchaseInvoiceDto } from './dtos/wme-purchase-invoice.dto';
+import { PurchaseInvoiceDto } from 'src/erp/dtos/domain/purchase-invoice.dto';
+import { DocumentKind } from 'src/erp/dtos/domain/enums/document-kind.enum';
 
 export class WmeMapper {
   static toPartnerDto(raw: WmePartnerDto): PartnerDto {
@@ -40,6 +43,17 @@ export class WmeMapper {
       priceWithVAT: raw.PretCuTVA,
       foreignCurrencyPrice: raw.PretValuta,
       vatPercentage: raw.ProcentTVA,
+    };
+  }
+
+  static toPurchaseInvoiceDto(raw: WmePurchaseInvoiceDto): PurchaseInvoiceDto {
+    let documentKind = DocumentKind.PurchaseInvoice;
+
+    if (raw.TipDocument == 'BON FISCAL') documentKind = DocumentKind.Receipt;
+
+    return {
+      id: raw.CodIntr,
+      documentKind: documentKind,
     };
   }
 }

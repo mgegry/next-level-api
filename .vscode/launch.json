@@ -4,14 +4,15 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug Program",
-      "skipFiles": ["<node_internals>/**"],
-      "preLaunchTask": "npm: build",
-      "program": "${workspaceFolder}/src/main.ts",
+      "name": "Debug with Auto Refresh",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "start:dev"],
       "console": "integratedTerminal",
       "env": {
         "NODE_ENV": "development"
-      }
+      },
+      "restart": true,
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

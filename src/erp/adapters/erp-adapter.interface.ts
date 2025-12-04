@@ -3,6 +3,7 @@ import { PaginatedResponseDto } from '../dtos/common/paginated-response.dto';
 import { DashboardDataDto } from '../dtos/domain/dashboard-data.dto';
 import { ItemDto } from '../dtos/domain/item.dto';
 import { PartnerDto } from '../dtos/domain/partner.dto';
+import { PurchaseInvoiceDto } from '../dtos/domain/purchase-invoice.dto';
 import { PaginatedRequestDto } from '../dtos/request/paginated-request.dto';
 
 export interface IErpAdapter {
@@ -21,5 +22,5 @@ export interface IErpAdapter {
   getPurchaseInvoices(
     pagination: PaginatedRequestDto,
     filters: any,
-  ): Promise<PaginatedResponseDto<any>>;
+  ): Promise<DataResponseDto<PurchaseInvoiceDto>>;
 }

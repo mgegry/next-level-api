@@ -14,13 +14,13 @@ export class ErpController {
 
   @Get('dashboard')
   @UseGuards(JwtGuard, CsrfGuard)
-  async getDashboard(@CurrentUser() user: User) {
+  getDashboard(@CurrentUser() user: User) {
     return this.erpService.getDashboard(user);
   }
 
   @Get('partners')
   @UseGuards(JwtGuard, CsrfGuard)
-  async getPartners(
+  getPartners(
     @CurrentUser() user: User,
     @Query() pagination: PaginatedRequestDto,
     @Query() filters: PartnersFilterRequestDto,
@@ -30,11 +30,21 @@ export class ErpController {
 
   @Get('items')
   @UseGuards(JwtGuard, CsrfGuard)
-  async getItems(
+  getItems(
     @CurrentUser() user: User,
     @Query() pagination: PaginatedRequestDto,
     @Query() filters: ItemsFilterRequestDto,
   ) {
     return this.erpService.getItems(user, pagination, filters);
+  }
+
+  @Get('purchase-invoices')
+  @UseGuards(JwtGuard, CsrfGuard)
+  getPurchaseInvoices(
+    @CurrentUser() user: User,
+    @Query() pagination: PaginatedRequestDto,
+    @Query() filters: ItemsFilterRequestDto,
+  ) {
+    return this.erpService.getPurchaseInvoices(user, pagination, filters);
   }
 }
