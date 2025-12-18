@@ -41,7 +41,7 @@ export interface WmePurchaseInvoiceDto {
 
   EXTENSIEFACTURA: string;
 
-  Items: Item[];
+  Items: WmePurchaseInvoiceItemDto[];
 }
 
 export interface TermenPlata {
@@ -51,7 +51,7 @@ export interface TermenPlata {
   Sold: string;
 }
 
-export interface Item {
+export interface WmePurchaseInvoiceItemDto {
   CodLinieDocument: string;
   IndexLocal: string;
   ID: string;

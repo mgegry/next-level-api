@@ -4,9 +4,13 @@ import { WmePartnerDto } from './dtos/wme-partner.dto';
 import { WmeWorkpointDto } from './dtos/wme-workpoint.dto';
 import { PartnerDto } from 'src/erp/dtos/domain/partner.dto';
 import { ItemDto } from 'src/erp/dtos/domain/item.dto';
-import { WmePurchaseInvoiceDto } from './dtos/wme-purchase-invoice.dto';
+import {
+  WmePurchaseInvoiceDto,
+  WmePurchaseInvoiceItemDto,
+} from './dtos/wme-purchase-invoice.dto';
 import { PurchaseInvoiceDto } from 'src/erp/dtos/domain/purchase-invoice.dto';
 import { DocumentKind } from 'src/erp/dtos/domain/enums/document-kind.enum';
+import { PurchaseInvoiceItemDto } from 'src/erp/dtos/domain/purchase-invoice-item.dto';
 
 export class WmeMapper {
   static toPartnerDto(raw: WmePartnerDto): PartnerDto {
@@ -54,6 +58,29 @@ export class WmeMapper {
     return {
       id: raw.CodIntr,
       documentKind: documentKind,
+      supplier: raw.Furnizor,
+      supplierFiscalCode: raw.IDFurnizor,
+      createdAt: raw.Data,
+      notes: raw.Observatii,
+      lastPayment: raw.UltimaPlata,
+      total: parseFloat(Number(raw.Valoare.replace(',', '.')).toFixed(2)),
+      purchaseInvoiceItems: raw.Items?.map((i) =>
+        WmeMapper.toPurchaseInvoiceItemDto(i),
+      ),
+    };
+  }
+
+  static toPurchaseInvoiceItemDto(
+    raw: WmePurchaseInvoiceItemDto,
+  ): PurchaseInvoiceItemDto {
+    return {
+      id: raw.CodLinieDocument,
+      name: raw.Denumire,
+      price: Number(raw.Pret.replace(',', '.')),
+      quantity: Number(raw.Cant.replace(',', '.')),
+      taxable: raw.Impozabil == 'DA' ? true : false,
+      measureUnit: raw.UM,
+      vatPercentage: raw.ProcTVA,
     };
   }
 }
