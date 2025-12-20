@@ -4,37 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import {} from 'csrf-csrf';
+import { doubleCsrf } from 'csrf-csrf';
 import { NetworkErrorInterceptor } from './core/interceptors/network-error.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const isProd = process.env.NODE_ENV === 'production';
-
-  // ----------------------------------------
-  // GLOBAL INTERCEPTORS
-  // ----------------------------------------
-  app.useGlobalInterceptors(new NetworkErrorInterceptor());
-
-  // ----------------------------------------
-  // GLOBAL PIPES (Add this section)
-  // ----------------------------------------
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // Key for your "Two Query Object" approach
-      transform: true, // Key for converting "1" (string) to 1 (number)
-      // forbidNonWhitelisted: true, // Optional: Throws error if user sends extra params
-    }),
-  );
-
-  // ----------------------------------------
-  // CORS FOR ANGULAR
-  // ----------------------------------------
-  app.enableCors({
-    origin: 'http://localhost:4200',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
-  });
 
   // ----------------------------------------
   // HELMET SECURITY
@@ -61,6 +36,31 @@ async function bootstrap() {
   // COOKIE PARSER (must be after helmet)
   // ----------------------------------------
   app.use(cookieParser());
+
+  // ----------------------------------------
+  // CORS FOR ANGULAR
+  // ----------------------------------------
+  app.enableCors({
+    origin: 'http://localhost:4200',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
+  // ----------------------------------------
+  // GLOBAL INTERCEPTORS
+  // ----------------------------------------
+  app.useGlobalInterceptors(new NetworkErrorInterceptor());
+
+  // ----------------------------------------
+  // GLOBAL PIPES (Add this section)
+  // ----------------------------------------
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Key for your "Two Query Object" approach
+      transform: true, // Key for converting "1" (string) to 1 (number)
+      // forbidNonWhitelisted: true, // Optional: Throws error if user sends extra params
+    }),
+  );
 
   // ----------------------------------------
   // SWAGGER SETUP

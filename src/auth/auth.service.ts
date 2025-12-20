@@ -44,6 +44,12 @@ export class AuthService {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
 
+      response.cookie('access_token', accessToken, {
+        ...cookieOptions,
+        expires: accessExpires,
+        path: '/',
+      });
+
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
         expires: refreshExpires,
@@ -81,8 +87,8 @@ export class AuthService {
         refreshTokenHash: null,
       });
 
-      response.clearCookie('access_token');
-      response.clearCookie('refresh_token');
+      response.clearCookie('access_token', { path: '/' });
+      response.clearCookie('refresh_token', { path: '/auth/refresh' });
 
       response.status(200).json({ message: 'Successfully signed out' });
     } catch (error) {
@@ -123,6 +129,12 @@ export class AuthService {
         ...cookieOptions,
         expires: refreshExpires,
         path: '/auth/refresh',
+      });
+
+      response.cookie('access_token', accessToken, {
+        ...cookieOptions,
+        expires: accessExpires,
+        path: '/',
       });
 
       return {
