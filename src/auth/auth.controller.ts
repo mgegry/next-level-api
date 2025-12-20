@@ -19,8 +19,6 @@ export class AuthController {
   @Get('status')
   @UseGuards(JwtGuard)
   status(@CurrentUser() user: User) {
-    // Return only safe fields (no passwordHash, no refreshTokenHash)
-    // Adjust based on what your Angular needs
     return {
       id: user.id,
       email: user.email,
@@ -35,7 +33,7 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  // @Throttle({ default: { ttl: seconds(60), limit: 5 } })
+  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   async login(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,

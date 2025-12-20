@@ -65,8 +65,6 @@ export class AuthService {
         tenantId: user.tenantId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        accessToken: accessToken,
-        accessExpires: accessExpires.toISOString(),
       };
     } catch (error) {
       this.logger.error('Login error:', {
@@ -146,8 +144,6 @@ export class AuthService {
         tenantId: user.tenantId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        accessToken: accessToken,
-        accessExpires: accessExpires.toISOString(),
       };
     } catch (error) {
       this.logger.error('Refresh tokens error:', {
