@@ -3,7 +3,7 @@ FROM node:22-slim AS builder
 WORKDIR /app
 
 # Pin pnpm via Corepack for reproducible builds
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 
@@ -20,21 +20,27 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends dumb-init ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
+# Create non-root user (but don't switch yet)
 RUN useradd -m -u 1001 nestjs
-USER nestjs
 
-COPY --chown=nestjs:nestjs package.json pnpm-lock.yaml ./
+# Install prod deps as root (avoids EACCES writing to /app)
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm fetch --frozen-lockfile \
   && pnpm install --offline --frozen-lockfile --prod
 
-COPY --from=builder --chown=nestjs:nestjs /app/dist ./dist
+# Copy compiled app
+COPY --from=builder /app/dist ./dist
 
-EXPOSE 3333
+# Fix ownership, then drop privileges
+RUN chown -R nestjs:nestjs /app
+USER nestjs
+
+EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["sh", "-c", "pnpm run migration:run:prod && node dist/main.js"]
