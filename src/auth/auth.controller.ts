@@ -52,16 +52,11 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtRefreshGuard)
   async logout(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.authService.logout(user.id, response);
-  }
-
-  @Get('csrf-token')
-  async getCsrfToken(): Promise<void> {
-    return;
   }
 }

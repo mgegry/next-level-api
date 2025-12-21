@@ -39,7 +39,6 @@ async function bootstrap() {
     origin: 'http://localhost:4200',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: ['Content-Type', 'x-csrf-token'],
   });
 
   // ----------------------------------------
@@ -70,8 +69,8 @@ async function bootstrap() {
     // If your frontend is on a DIFFERENT site, you typically need SameSite=None; Secure
     // csrf-csrf default is strict :contentReference[oaicite:6]{index=6} so override for cross-site SPA:
     cookieOptions: {
-      sameSite: 'none', // for cross-site
-      secure: true, // required when SameSite=None
+      sameSite: 'lax', // for cross-site
+      secure: false, // required when SameSite=None
       path: '/',
       httpOnly: true, // default is true :contentReference[oaicite:7]{index=7}
     },
@@ -81,7 +80,11 @@ async function bootstrap() {
       req.headers['x-csrf-token'] as string | undefined,
 
     // Optional: skip CSRF for the token-minting route
-    skipCsrfProtection: (req) => req.path === '/csrf-token',
+    skipCsrfProtection: (req) =>
+      req.path === '/auth/csrf-token' ||
+      req.path === '/auth/refresh' ||
+      req.path === '/auth/logout' ||
+      req.path === '/auth/login',
   });
 
   // 4) Create an UNPROTECTED route that mints a CSRF token + sets the CSRF cookie.

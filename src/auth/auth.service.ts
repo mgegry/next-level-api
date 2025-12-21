@@ -53,7 +53,7 @@ export class AuthService {
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
         expires: refreshExpires,
-        path: '/auth/refresh',
+        path: '/auth',
       });
 
       return {
@@ -126,7 +126,7 @@ export class AuthService {
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
         expires: refreshExpires,
-        path: '/auth/refresh',
+        path: '/auth',
       });
 
       response.cookie('access_token', accessToken, {
