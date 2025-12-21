@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from './database/database.module';
 import { CryptoModule } from './crypto/crypto.module';
 
 @Module({
-  imports: [DatabaseModule, CryptoModule]
+  imports: [CryptoModule],
 })
 export class CoreModule {}
