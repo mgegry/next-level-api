@@ -33,18 +33,67 @@ async function bootstrap() {
   }
 
   // ----------------------------------------
-  // COOKIE PARSER (must be after helmet)
-  // ----------------------------------------
-  app.use(cookieParser());
-
-  // ----------------------------------------
   // CORS FOR ANGULAR
   // ----------------------------------------
   app.enableCors({
     origin: 'http://localhost:4200',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'x-csrf-token'],
   });
+
+  // ----------------------------------------
+  // COOKIE PARSER (must be after helmet)
+  // ----------------------------------------
+  app.use(cookieParser());
+
+  // ----------------------------------------
+  // CSRF PROTECTION
+  // ----------------------------------------
+  const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+    // Secret used for HMAC signing. Keep stable & private.
+    getSecret: () => process.env.CSRF_SECRET!,
+
+    /**
+     * IMPORTANT:
+     * Bind CSRF tokens to something user-specific that rotates when auth rotates.
+     *
+     * With access+refresh cookies:
+     * - Prefer refresh token (or its jti) because it's the “session-like” identifier.
+     * - When you rotate refresh tokens, you should also issue a new CSRF token. :contentReference[oaicite:5]{index=5}
+     */
+    getSessionIdentifier: (req) => {
+      // example cookie names — adjust to yours
+      return req.cookies?.refresh_token ?? 'anonymous';
+    },
+
+    // If your frontend is on a DIFFERENT site, you typically need SameSite=None; Secure
+    // csrf-csrf default is strict :contentReference[oaicite:6]{index=6} so override for cross-site SPA:
+    cookieOptions: {
+      sameSite: 'none', // for cross-site
+      secure: true, // required when SameSite=None
+      path: '/',
+      httpOnly: true, // default is true :contentReference[oaicite:7]{index=7}
+    },
+
+    // Default header is x-csrf-token :contentReference[oaicite:8]{index=8}
+    getCsrfTokenFromRequest: (req) =>
+      req.headers['x-csrf-token'] as string | undefined,
+
+    // Optional: skip CSRF for the token-minting route
+    skipCsrfProtection: (req) => req.path === '/csrf-token',
+  });
+
+  // 4) Create an UNPROTECTED route that mints a CSRF token + sets the CSRF cookie.
+  // This mirrors the library’s recommended “/csrf-token” approach. :contentReference[oaicite:9]{index=9}
+  const expressInstance = app.getHttpAdapter().getInstance();
+  expressInstance.get('/auth/csrf-token', (req, res) => {
+    const csrfToken = generateCsrfToken(req, res);
+    res.json({ csrfToken });
+  });
+
+  // 5) Apply protection globally (protects non-GET/HEAD/OPTIONS by default) :contentReference[oaicite:10]{index=10}
+  app.use(doubleCsrfProtection);
 
   // ----------------------------------------
   // GLOBAL INTERCEPTORS
