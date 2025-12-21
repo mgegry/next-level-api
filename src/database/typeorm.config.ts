@@ -14,7 +14,7 @@ const configService = new ConfigService();
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: configService.get<string>('DATABASE_HOST'),
+  host: configService.get<string>('DB_HOST'),
   port: parseInt(configService.get<string>('DB_PORT') ?? '5432', 5432),
   username: configService.get<string>('DB_USER'),
   password: configService.get<string>('DB_PASS')?.toString(),
