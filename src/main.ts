@@ -36,9 +36,9 @@ async function bootstrap() {
   // CORS FOR ANGULAR
   // ----------------------------------------
   app.enableCors({
-    origin: 'http://localhost:4200',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: 'https://nextlevelapp.blueaisolutions.com',
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
 
   // ----------------------------------------
@@ -69,10 +69,10 @@ async function bootstrap() {
     // If your frontend is on a DIFFERENT site, you typically need SameSite=None; Secure
     // csrf-csrf default is strict :contentReference[oaicite:6]{index=6} so override for cross-site SPA:
     cookieOptions: {
-      sameSite: 'lax', // for cross-site
-      secure: false, // required when SameSite=None
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
       path: '/',
-      httpOnly: true, // default is true :contentReference[oaicite:7]{index=7}
     },
 
     // Default header is x-csrf-token :contentReference[oaicite:8]{index=8}

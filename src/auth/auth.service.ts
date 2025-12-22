@@ -26,9 +26,8 @@ export class AuthService {
   async login(user: User, response: Response): Promise<LoginResponseDto> {
     try {
       const isProd = this.configService.get('NODE_ENV') === 'production';
-      const domain = this.configService.get('COOKIE_DOMAIN');
 
-      const cookieOptions = this.getCookieOptions(isProd, domain);
+      const cookieOptions = this.getCookieOptions(isProd);
 
       const payload = {
         id: user.id,
@@ -105,9 +104,8 @@ export class AuthService {
   ): Promise<RefreshResponseDto> {
     try {
       const isProd = this.configService.get('NODE_ENV') === 'production';
-      const domain = this.configService.get('COOKIE_DOMAIN');
 
-      const cookieOptions = this.getCookieOptions(isProd, domain);
+      const cookieOptions = this.getCookieOptions(isProd);
 
       const payload = {
         id: user.id,
@@ -208,17 +206,16 @@ export class AuthService {
     }
   }
 
-  private getCookieOptions(isProd: boolean, domain: string) {
+  private getCookieOptions(isProd: boolean) {
     const baseOptions: CookieOptions = {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: 'strict',
     };
 
     if (isProd) {
       return {
         ...baseOptions,
         secure: true,
-        domain,
       };
     }
 
