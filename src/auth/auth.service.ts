@@ -209,7 +209,7 @@ export class AuthService {
   private getCookieOptions(isProd: boolean) {
     const baseOptions: CookieOptions = {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
     };
 
     if (isProd) {
