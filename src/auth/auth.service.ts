@@ -84,8 +84,16 @@ export class AuthService {
         refreshTokenHash: null,
       });
 
-      response.clearCookie('access_token');
-      response.clearCookie('refresh_token');
+      response.clearCookie('access_token', {
+        path: '/',
+        sameSite: 'none',
+        httpOnly: true,
+      });
+      response.clearCookie('refresh_token', {
+        path: '/auth',
+        sameSite: 'none',
+        httpOnly: true,
+      });
 
       response.status(200).json({ message: 'Successfully signed out' });
     } catch (error) {
