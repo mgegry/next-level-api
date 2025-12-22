@@ -20,8 +20,8 @@ const AppDataSource = new DataSource({
   password: configService.get<string>('DB_PASS')?.toString(),
   database: configService.get<string>('DB_NAME'),
   synchronize: false,
-  entities: ['**/*.entity.ts'],
-  migrations: ['src/database/migrations/*-migration.ts'],
+  entities: ['**/*.entity.{js,ts}'],
+  migrations: ['src/database/migrations/*-migration.{js,ts}'],
   migrationsRun: false,
   logging: true,
 });
