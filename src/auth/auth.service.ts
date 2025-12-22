@@ -87,11 +87,13 @@ export class AuthService {
       response.clearCookie('access_token', {
         path: '/',
         sameSite: 'none',
+        secure: true,
         httpOnly: true,
       });
       response.clearCookie('refresh_token', {
         path: '/auth',
         sameSite: 'none',
+        secure: true,
         httpOnly: true,
       });
 
