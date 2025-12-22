@@ -39,7 +39,7 @@ async function bootstrap() {
   // CORS FOR ANGULAR
   // ----------------------------------------
   app.enableCors({
-    origin: 'https://nextlevelapp.blueaisolutions.com',
+    origin: 'https://blueaimedia.com',
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
