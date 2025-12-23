@@ -42,6 +42,7 @@ async function bootstrap() {
     origin: 'https://blueaimedia.com',
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
   });
 
   // ----------------------------------------
