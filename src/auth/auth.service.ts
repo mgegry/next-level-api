@@ -25,23 +25,25 @@ export class AuthService {
 
   async login(user: User, response: Response): Promise<LoginResponseDto> {
     try {
-      const isProd = this.configService.get('NODE_ENV') === 'production';
-
-      const cookieOptions = this.getCookieOptions(isProd);
-
+      
       const payload = {
         id: user.id,
         email: user.email,
         tenantId: user.tenantId,
         role: user.role,
       };
-
+      
+      // Generate tokens
       const { accessToken, refreshToken, accessExpires, refreshExpires } =
-        this.generateTokens(payload);
-
+      this.generateTokens(payload);
+      
+      // Set refresh token for the user on the database
       await this.userService.updateUser(user.id, {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
+      
+      // Add cookies to the response
+      const cookieOptions = this.getCookieOptions();
 
       response.cookie('access_token', accessToken, {
         ...cookieOptions,
@@ -80,21 +82,22 @@ export class AuthService {
 
   async logout(userId: number, response: Response) {
     try {
+
+      // Remove existen refresh token from the database
       await this.userService.updateUser(userId, {
         refreshTokenHash: null,
       });
 
+      // Clear token cookies
+      const cookieOptions = this.getCookieOptions();
+
       response.clearCookie('access_token', {
+        ...cookieOptions,
         path: '/',
-        sameSite: 'none',
-        secure: true,
-        httpOnly: true,
       });
       response.clearCookie('refresh_token', {
+        ...cookieOptions,
         path: '/auth',
-        sameSite: 'none',
-        secure: true,
-        httpOnly: true,
       });
 
       response.status(200).json({ message: 'Successfully signed out' });
@@ -113,23 +116,24 @@ export class AuthService {
     response: Response,
   ): Promise<RefreshResponseDto> {
     try {
-      const isProd = this.configService.get('NODE_ENV') === 'production';
-
-      const cookieOptions = this.getCookieOptions(isProd);
-
       const payload = {
         id: user.id,
         email: user.email,
         tenantId: user.tenantId,
         role: user.role,
       };
-
+      
+      // Generate new tokens
       const { accessToken, refreshToken, accessExpires, refreshExpires } =
-        this.generateTokens(payload);
-
+      this.generateTokens(payload);
+      
+      // Set new refresh token on the datbase
       await this.userService.updateUser(user.id, {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
       });
+      
+      // Set cookies on the response
+      const cookieOptions = this.getCookieOptions();
 
       response.cookie('refresh_token', refreshToken, {
         ...cookieOptions,
@@ -216,23 +220,18 @@ export class AuthService {
     }
   }
 
-  private getCookieOptions(isProd: boolean) {
+  private getCookieOptions() {
+    const isProd = this.configService.get('NODE_ENV') === 'production';
+
+    const sameSite = isProd ? 'none' : 'lax';
+
     const baseOptions: CookieOptions = {
       httpOnly: true,
-      sameSite: 'none',
+      sameSite: sameSite,
+      secure: isProd
     };
 
-    if (isProd) {
-      return {
-        ...baseOptions,
-        secure: true,
-      };
-    }
-
-    return {
-      ...baseOptions,
-      secure: false,
-    };
+    return baseOptions;
   }
 
   private generateTokens(payload: any) {
