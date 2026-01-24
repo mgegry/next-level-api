@@ -16,6 +16,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       envFilePath: [`config/.env.${process.env.NODE_ENV}`],
       isGlobal: true,
     }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,6 +32,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         autoLoadEntities: true,
       }),
     }),
+
     ThrottlerModule.forRoot({
       //REVIEW - If revers proxy is used this has to be changed according to the documentation
       // https://docs.nestjs.com/security/rate-limiting
@@ -41,6 +43,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         },
       ],
     }),
+
     CoreModule,
     UserModule,
     AuthModule,
