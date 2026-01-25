@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { seconds, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ReceiptModule } from './receipt/receipt.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     AuthModule,
     TenantModule,
     ErpModule,
+    ReceiptModule,
   ],
   controllers: [],
   providers: [
