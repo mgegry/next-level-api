@@ -14,9 +14,9 @@ export class ReceiptController {
   constructor(private readonly receiptService: ReceiptService) {}
 
   @Post('scan')
-  @UseGuards(JwtGuard)
+  // @UseGuards(JwtGuard)
   @UseInterceptors(FileInterceptor('file'))
   scanReceipt(@UploadedFile() file: Express.Multer.File) {
-    return this.receiptService.scan(file);
+    return this.receiptService.scanAndSave(file);
   }
 }
