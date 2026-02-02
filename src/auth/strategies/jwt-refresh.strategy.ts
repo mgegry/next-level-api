@@ -35,17 +35,10 @@ export class JwtRefreshStrategy extends PassportStrategy(
     const refreshToken = request.cookies['refresh_token'];
 
     if (!refreshToken) {
-      throw new ForbiddenException('Missing refresh token');
+      this.logger.warn('Refresh token missing from request');
+      throw new UnauthorizedException('Invalid Credentials');
     }
 
-    const user = await this.authService.validateRefreshTokens(
-      payload.id,
-      refreshToken,
-    );
-
-    if (!user) {
-      throw new UnauthorizedException('Refresh token hash validation failed');
-    }
-    return user;
+    return this.authService.validateRefreshTokens(payload.id, refreshToken);
   }
 }

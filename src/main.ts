@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { doubleCsrf } from 'csrf-csrf';
 import { NetworkErrorInterceptor } from './core/interceptors/network-error.interceptor';
+import { Logger } from 'nestjs-pino';
+import { AllExceptionsFilter } from './core/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -103,6 +105,11 @@ async function bootstrap() {
   app.use(doubleCsrfProtection);
 
   // ----------------------------------------
+  // GLOBAL EXCEPTION FILTER
+  // ----------------------------------------
+  app.useGlobalFilters(app.get(AllExceptionsFilter));
+
+  // ----------------------------------------
   // GLOBAL INTERCEPTORS
   // ----------------------------------------
   app.useGlobalInterceptors(new NetworkErrorInterceptor());
@@ -132,7 +139,7 @@ async function bootstrap() {
   // ----------------------------------------
   // CUSTOM LOGGER
   // ----------------------------------------
-  app.useLogger(new Logger());
+  app.useLogger(app.get(Logger));
 
   // ----------------------------------------
   // START SERVER

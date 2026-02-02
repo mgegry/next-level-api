@@ -34,7 +34,7 @@ export class AuthController {
   @Post('login')
   @UseGuards(LocalGuard)
   @Throttle({ default: { ttl: seconds(60), limit: 5 } })
-  async login(
+  login(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponseDto> {
@@ -44,7 +44,7 @@ export class AuthController {
   @Post('refresh')
   @UseGuards(JwtRefreshGuard)
   @Throttle({ default: { ttl: seconds(60), limit: 30 } })
-  async refreshTokens(
+  refreshTokens(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<RefreshResponseDto> {
@@ -53,10 +53,10 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtRefreshGuard)
-  async logout(
+  logout(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
-    await this.authService.logout(user.id, response);
+    return this.authService.logout(user.id, response);
   }
 }

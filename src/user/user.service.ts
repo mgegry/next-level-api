@@ -17,6 +17,7 @@ export class UserService {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
+    email = email.trim().toLowerCase();
     return this.userRepository.findOneBy({ email });
   }
 
