@@ -41,7 +41,7 @@ async function bootstrap() {
   // CORS FOR ANGULAR
   // ----------------------------------------
   app.enableCors({
-    origin: 'https://blueaimedia.com',
+    origin: isProd ? ['https://blueaimedia.com'] : ['http://localhost:4200'],
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
@@ -69,7 +69,7 @@ async function bootstrap() {
      */
     getSessionIdentifier: (req) => {
       // example cookie names — adjust to yours
-      return req.cookies?.refresh_token ?? 'anonymous';
+      return req.cookies?.access_token ?? 'anonymous';
     },
 
     // If your frontend is on a DIFFERENT site, you typically need SameSite=None; Secure
