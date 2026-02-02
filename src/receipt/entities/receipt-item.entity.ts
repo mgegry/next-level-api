@@ -1,10 +1,12 @@
 import { Receipt } from 'src/receipt/entities/receipt.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: 'receipt_item' })
@@ -36,4 +38,10 @@ export class ReceiptItem {
   @ManyToOne(() => Receipt, (receipt) => receipt.receiptItems)
   @JoinColumn({ name: 'receipt_id' })
   receipt: Receipt;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

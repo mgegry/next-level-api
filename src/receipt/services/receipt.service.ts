@@ -28,7 +28,7 @@ export class ReceiptService {
 
       const response = await firstValueFrom(
         this.http.post<N8nScanReceiptDto>(
-          'https://n8n.blueaisolutions.com/webhook-test/181d4910-2f17-47f9-ad8c-e0844ae90b5d',
+          'https://n8n.blueaisolutions.com/webhook/181d4910-2f17-47f9-ad8c-e0844ae90b5d',
           form,
           { headers: form.getHeaders() },
         ),
@@ -75,13 +75,21 @@ export class ReceiptService {
           itemPrice: i.itemPrice.toFixed(2),
           quantity: i.quantity,
           categoryCalssificationConfidence: i.confidence,
-          receipt: savedReceipt, // OR receiptId: savedReceipt.id
+          receiptId: savedReceipt.id,
         }),
       );
 
       await lineRepo.save(lines);
 
-      return { receipt: savedReceipt, lines };
+      return {
+        id: savedReceipt.id,
+        receiptNumber: savedReceipt.receiptNumber,
+        receiptDate: savedReceipt.receiptDate,
+        supplierName: savedReceipt.supplierName,
+        supplierTaxId: savedReceipt.supplierTaxId,
+        totalAmount: savedReceipt.totalAmount,
+        items: lines,
+      };
     });
   }
 }
