@@ -28,6 +28,12 @@ export class Receipt {
   @Column({ name: 'total_amount', type: 'numeric', precision: 12, scale: 2 })
   totalAmount: string;
 
+  @Column({ name: 's3_key' })
+  s3Key: string;
+
+  @Column({ name: 'user_id' })
+  userId: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
