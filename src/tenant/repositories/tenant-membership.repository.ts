@@ -36,4 +36,14 @@ export class TenantMembershipRepository {
       },
     });
   }
+
+  async findActiveByUserWithTenant(
+    userId: number,
+  ): Promise<TenantMembership[]> {
+    return this.repository.find({
+      where: { userId, status: MembershipStatus.ACTIVE },
+      relations: { tenant: true },
+      order: { id: 'ASC' },
+    });
+  }
 }

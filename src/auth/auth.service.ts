@@ -34,7 +34,7 @@ export class AuthService {
 
   async login(user: User, response: Response): Promise<LoginResponseDto> {
     // 1) Get active memberships
-    const memberships = await this.tenantMembershipService.findActiveByUserId(
+    const memberships = await this.tenantMembershipService.getActiveByUserId(
       user.id,
     );
 
@@ -156,7 +156,7 @@ export class AuthService {
     // 3) Determine tenant context from session
     const tenantId = session.currentTenantId;
     const membership =
-      await this.tenantMembershipService.findActiveByUserAndTenant(
+      await this.tenantMembershipService.getActiveByUserAndTenant(
         user.userId,
         tenantId,
       );
@@ -290,7 +290,7 @@ export class AuthService {
   ) {
     // 1) Verify the user has ACTIVE membership in requested tenant
     const membership =
-      await this.tenantMembershipService.findActiveByUserAndTenant(
+      await this.tenantMembershipService.getActiveByUserAndTenant(
         accessUser.userId,
         targetTenantId,
       );

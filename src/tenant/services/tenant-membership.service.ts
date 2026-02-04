@@ -28,11 +28,11 @@ export class TenantMembershipService {
     return m;
   }
 
-  async findActiveByUserId(userId: number): Promise<TenantMembership[]> {
+  async getActiveByUserId(userId: number): Promise<TenantMembership[]> {
     return this.tenantMembershipRepository.findActiveByUserId(userId);
   }
 
-  async findActiveByUserAndTenant(
+  async getActiveByUserAndTenant(
     userId: number,
     tenantId: number,
   ): Promise<TenantMembership | null> {
@@ -40,5 +40,9 @@ export class TenantMembershipService {
       userId,
       tenantId,
     );
+  }
+
+  async getActiveByUserWithTenant(userId: number): Promise<TenantMembership[]> {
+    return this.tenantMembershipRepository.findActiveByUserWithTenant(userId);
   }
 }
