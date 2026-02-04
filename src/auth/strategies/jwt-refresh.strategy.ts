@@ -1,15 +1,10 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { AuthService } from '../auth.service';
 import { Request } from 'express';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { AccessTokenPayload } from '../dtos/access-token-payload.dto';
+import { AccessTokenPayload } from '../interfaces/access-token-payload.interface';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -32,13 +27,14 @@ export class JwtRefreshStrategy extends PassportStrategy(
   }
 
   async validate(request: Request, payload: AccessTokenPayload) {
-    const refreshToken = request.cookies['refresh_token'];
+    // const refreshToken = request.cookies['refresh_token'];
 
-    if (!refreshToken) {
-      this.logger.warn('Refresh token missing from request');
-      throw new UnauthorizedException('Invalid Credentials');
-    }
+    // if (!refreshToken) {
+    //   this.logger.warn('Refresh token missing from request');
+    //   throw new UnauthorizedException('Invalid Credentials');
+    // }
 
-    return this.authService.validateRefreshTokens(payload.id, refreshToken);
+    // return this.authService.validateRefreshTokens(payload.id, refreshToken);
+    return this.authService.validateRefreshContext(request, payload);
   }
 }

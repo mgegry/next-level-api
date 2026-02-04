@@ -6,7 +6,6 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { Role } from '../role.enum';
 
 export class CreateUserDto {
   @IsOptional()
@@ -27,9 +26,6 @@ export class CreateUserDto {
   @IsString()
   @MinLength(6)
   password: string; // Plain text password from client
-
-  @IsEnum(Role)
-  role: Role;
 
   @IsNumber()
   tenantId: number;

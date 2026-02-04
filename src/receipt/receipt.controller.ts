@@ -14,8 +14,9 @@ import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { ReceiptService } from './services/receipt.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AwsS3Service } from 'src/core/aws/aws-s3.service';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/user/entities/user.entity';
+import { CurrentAccessUser } from 'src/auth/decorators/current-access-user.decorator';
+import type { AccessUser } from 'src/auth/interfaces/access-user.interface';
 
 @Controller('receipts')
 export class ReceiptController {
@@ -28,45 +29,48 @@ export class ReceiptController {
   @UseGuards(JwtGuard)
   @UseInterceptors(FileInterceptor('file'))
   scanReceipt(
-    @CurrentUser() user: User,
+    @CurrentAccessUser() user: AccessUser,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.receiptService.scanAndSave(file, user.id);
+    return this.receiptService.scanAndSave(file, user.userId);
   }
 
   @Get()
   @UseGuards(JwtGuard)
-  getReceipts(@CurrentUser() user: User) {
-    return this.receiptService.getAllReceiptsForUser(user.id);
+  getReceipts(@CurrentAccessUser() user: AccessUser) {
+    return this.receiptService.getAllReceiptsForUser(user.userId);
   }
 
   @Get(':id/items')
   @UseGuards(JwtGuard)
   getReceiptItems(
-    @CurrentUser() user: User,
+    @CurrentAccessUser() user: AccessUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.receiptService.getReceiptItems(id, user.id);
+    return this.receiptService.getReceiptItems(id, user.userId);
   }
 
   @Get(':id')
   @UseGuards(JwtGuard)
-  getReceipt(@CurrentUser() user: User, @Param('id', ParseIntPipe) id: number) {
-    return this.receiptService.getReceiptForUser(id, user.id);
-  }
-
-  @Post('presign-upload')
-  @UseGuards(JwtGuard)
-  presignUpload(
-    @CurrentUser() user: User,
-    @Body() body: { mimeType: string; ext: string },
+  getReceipt(
+    @CurrentAccessUser() user: AccessUser,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.s3.presignUpload(user.id, body.mimeType, body.ext);
+    return this.receiptService.getReceiptForUser(id, user.userId);
   }
 
-  @Get('presign-view')
-  @UseGuards(JwtGuard)
-  presignView(@Query('key') key: string) {
-    return this.s3.presignView(key);
-  }
+  // @Post('presign-upload')
+  // @UseGuards(JwtGuard)
+  // presignUpload(
+  //   @CurrentAccessUser() user: AccessUser,
+  //   @Body() body: { mimeType: string; ext: string },
+  // ) {
+  //   return this.s3.presignUpload(user.id, body.mimeType, body.ext);
+  // }
+
+  // @Get('presign-view')
+  // @UseGuards(JwtGuard)
+  // presignView(@Query('key') key: string) {
+  //   return this.s3.presignView(key);
+  // }
 }

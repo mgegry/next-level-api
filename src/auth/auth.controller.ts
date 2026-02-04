@@ -5,10 +5,14 @@ import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { LocalGuard } from './guards/local.guard';
 import { LoginResponseDto } from './dtos/login-response.dto';
 import { RefreshResponseDto } from './dtos/refresh-response.dto';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import type { Response } from 'express';
 import { seconds, Throttle } from '@nestjs/throttler';
+import { CurrentAccessUser } from './decorators/current-access-user.decorator';
+import { CurrentRefreshUser } from './decorators/current-refresh-user.decorator';
+import { LocalUser } from './decorators/local-user.decorator';
+import type { RefreshUser } from './interfaces/refresh-user.interface';
+import type { AccessUser } from './interfaces/access-user.interface';
 
 //REVIEW - Might want to add Redis for IP-based login lockouts when deploying for security
 
@@ -18,16 +22,14 @@ export class AuthController {
 
   @Get('status')
   @UseGuards(JwtGuard)
-  status(@CurrentUser() user: User) {
+  status(@CurrentAccessUser() user: AccessUser) {
     return {
-      id: user.id,
+      userId: user.userId,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
       tenantId: user.tenantId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      role: user.role,
+      membershipId: user.membershipId,
+      sessionId: user.sessionId,
     };
   }
 
@@ -35,7 +37,7 @@ export class AuthController {
   @UseGuards(LocalGuard)
   @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   login(
-    @CurrentUser() user: User,
+    @LocalUser() user: User,
     @Res({ passthrough: true }) response: Response,
   ): Promise<LoginResponseDto> {
     return this.authService.login(user, response);
@@ -45,7 +47,7 @@ export class AuthController {
   @UseGuards(JwtRefreshGuard)
   @Throttle({ default: { ttl: seconds(60), limit: 30 } })
   refreshTokens(
-    @CurrentUser() user: User,
+    @CurrentRefreshUser() user: RefreshUser,
     @Res({ passthrough: true }) response: Response,
   ): Promise<RefreshResponseDto> {
     return this.authService.refreshTokens(user, response);
@@ -54,9 +56,9 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtRefreshGuard)
   logout(
-    @CurrentUser() user: User,
+    @CurrentRefreshUser() user: RefreshUser,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
-    return this.authService.logout(user.id, response);
+    return this.authService.logout(user.userId, response);
   }
 }

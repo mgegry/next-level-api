@@ -5,13 +5,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from 'src/user/user.service';
+import { UserService } from 'src/user/services/user.service';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { CookieOptions, Response } from 'express';
 import { LoginResponseDto } from './dtos/login-response.dto';
 import { RefreshResponseDto } from './dtos/refresh-response.dto';
+import { UserSessionService } from 'src/user/services/user-session.service';
+import { TenantMembershipService } from 'src/tenant/services/tenant-membership.service';
+import { AccessTokenPayload } from './interfaces/access-token-payload.interface';
+import { RefreshTokenPayload } from './interfaces/refresh-token-payload.interface';
+import { Request } from 'express';
+import { AccessUser } from './interfaces/access-user.interface';
+import { RefreshUser } from './interfaces/refresh-user.interface';
 
 @Injectable()
 export class AuthService {
@@ -21,24 +28,58 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly userSessionService: UserSessionService,
+    private readonly tenantMembershipService: TenantMembershipService,
   ) {}
 
   async login(user: User, response: Response): Promise<LoginResponseDto> {
-    const payload = {
-      id: user.id,
+    // 1) Get active memberships
+    const memberships = await this.tenantMembershipService.findActiveByUserId(
+      user.id,
+    );
+
+    if (!memberships.length) {
+      throw new ForbiddenException('User has no active tenants');
+    }
+
+    // 2) Choose a default membership (simple: first)
+    // Better later: choose last-used tenant, or admin-first.
+    const membership = memberships[0];
+
+    // 3) Enforce "one instance": revoke existing active sessions
+    await this.userSessionService.revokeAllActiveForUser(user.id);
+
+    const session = await this.userSessionService.createSession({
+      userId: user.id,
+      currentTenantId: membership.tenantId,
+      // optional: pass these in from controller if you want
+      userAgent: null,
+      deviceFingerprint: null,
+    });
+
+    const accessPayload: AccessTokenPayload = {
+      sub: user.id,
       email: user.email,
-      tenantId: user.tenantId,
-      role: user.role,
+      sid: session.id,
+      tid: membership.tenantId,
+      mid: membership.id,
+      role: membership.role,
+    };
+
+    const refreshPayload: RefreshTokenPayload = {
+      sub: user.id,
+      sid: session.id,
     };
 
     // Generate tokens
     const { accessToken, refreshToken, accessExpires, refreshExpires } =
-      this.generateTokens(payload);
+      this.generateTokens({ accessPayload, refreshPayload });
 
-    // Set refresh token for the user on the database
-    await this.userService.updateUser(user.id, {
-      refreshTokenHash: await bcrypt.hash(refreshToken, 10),
-    });
+    // 6) Store refresh token hash on the session row
+    await this.userSessionService.setRefreshTokenHash(
+      session.id,
+      await bcrypt.hash(refreshToken, 10),
+    );
 
     // Add cookies to the response
     const cookieOptions = this.getCookieOptions();
@@ -60,8 +101,8 @@ export class AuthService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
-      tenantId: user.tenantId,
+      role: membership.role,
+      tenantId: membership.tenantId,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -69,9 +110,7 @@ export class AuthService {
 
   async logout(userId: number, response: Response) {
     // Remove existen refresh token from the database
-    await this.userService.updateUser(userId, {
-      refreshTokenHash: null,
-    });
+    await this.userSessionService.revokeAllActiveForUser(userId);
 
     // Clear token cookies
     const cookieOptions = this.getCookieOptions();
@@ -89,26 +128,70 @@ export class AuthService {
   }
 
   async refreshTokens(
-    user: User,
+    user: RefreshUser,
     response: Response,
   ): Promise<RefreshResponseDto> {
-    const payload = {
-      id: user.id,
-      email: user.email,
-      tenantId: user.tenantId,
-      role: user.role,
+    // 1) Load session
+    const session = await this.userSessionService.getSessionById(
+      user.sessionId,
+    );
+    if (
+      !session ||
+      !session.isActive ||
+      session.revokedAt ||
+      session.userId !== user.userId
+    ) {
+      throw new UnauthorizedException('Session invalid');
+    }
+
+    // 2) Verify refresh token matches hash stored on session
+    const matches = await bcrypt.compare(
+      user.refreshToken,
+      session.refreshTokenHash,
+    );
+    if (!matches) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // 3) Determine tenant context from session
+    const tenantId = session.currentTenantId;
+    const membership =
+      await this.tenantMembershipService.findActiveByUserAndTenant(
+        user.userId,
+        tenantId,
+      );
+
+    if (!membership) {
+      throw new ForbiddenException('No access to tenant');
+    }
+
+    // 4) Mint new tokens
+    const dbUser = await this.userService.getUserByIdOrThrow(user.userId);
+
+    const accessPayload = {
+      sub: dbUser.id,
+      email: dbUser.email,
+      sid: session.id,
+      tid: membership.tenantId,
+      mid: membership.id,
+      role: membership.role,
     };
 
-    // Generate new tokens
+    const refreshPayload = {
+      sub: dbUser.id,
+      sid: session.id,
+    };
+
     const { accessToken, refreshToken, accessExpires, refreshExpires } =
-      this.generateTokens(payload);
+      this.generateTokens({ accessPayload, refreshPayload });
 
-    // Set new refresh token on the datbase
-    await this.userService.updateUser(user.id, {
-      refreshTokenHash: await bcrypt.hash(refreshToken, 10),
-    });
+    // 5) Rotate refresh token hash on session
+    await this.userSessionService.setRefreshTokenHash(
+      session.id,
+      await bcrypt.hash(refreshToken, 10),
+    );
 
-    // Set cookies on the response
+    // 6) Set cookies
     const cookieOptions = this.getCookieOptions();
 
     response.cookie('refresh_token', refreshToken, {
@@ -123,18 +206,20 @@ export class AuthService {
       path: '/',
     });
 
+    // 7) Return DTO (role/tenant from membership, profile fields from db user)
     return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      tenantId: user.tenantId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      id: dbUser.id,
+      email: dbUser.email,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+      role: membership.role,
+      tenantId: membership.tenantId,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
     };
   }
 
+  // For Local Strategy
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userService.getUserByEmail(email);
 
@@ -153,39 +238,49 @@ export class AuthService {
     return user;
   }
 
-  async validateRefreshTokens(userId: number, refreshToken: string) {
-    const user = await this.userService.getUserById(userId);
-
-    if (!user) {
-      this.logger.warn(
-        { userId: userId },
-        `User does not exist with the given id`,
-      );
-      throw new UnauthorizedException('Invalid Credentials');
-    }
-
-    if (!user.refreshTokenHash) {
-      this.logger.warn(
-        { userId: userId },
-        'User does not have a refresh token set in the database',
-      );
-      throw new UnauthorizedException('Invalid Credentials');
-    }
-
-    const refreshTokenMatches = await bcrypt.compare(
-      refreshToken,
-      user.refreshTokenHash,
+  // For Jwt Strategy
+  async validateAccessContext(payload: AccessTokenPayload) {
+    const session = await this.userSessionService.assertSessionActive(
+      payload.sid,
+      payload.sub,
     );
+    if (!session) throw new UnauthorizedException('Session invalid');
 
-    if (!refreshTokenMatches) {
-      this.logger.warn(
-        { userId: userId },
-        'Refresh token does not match the one in the database',
-      );
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const membership =
+      await this.tenantMembershipService.assertMembershipActive({
+        membershipId: payload.mid,
+        userId: payload.sub,
+        tenantId: payload.tid,
+      });
+    if (!membership) throw new UnauthorizedException('Membership invalid');
 
-    return user;
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      sessionId: payload.sid,
+      tenantId: payload.tid,
+      membershipId: payload.mid,
+      role: membership.role, // source of truth
+    };
+  }
+
+  // For RefreshStrategy
+  async validateRefreshContext(req: Request, payload: RefreshTokenPayload) {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) throw new UnauthorizedException('Missing refresh token');
+
+    // optional: fail fast if session revoked
+    const session = await this.userSessionService.assertSessionActive(
+      payload.sid,
+      payload.sub,
+    );
+    if (!session) throw new UnauthorizedException('Session invalid');
+
+    return {
+      userId: payload.sub,
+      sessionId: payload.sid,
+      refreshToken,
+    };
   }
 
   private getCookieOptions() {
@@ -202,7 +297,10 @@ export class AuthService {
     return baseOptions;
   }
 
-  private generateTokens(payload: any) {
+  private generateTokens(params: {
+    accessPayload: AccessTokenPayload;
+    refreshPayload: RefreshTokenPayload;
+  }) {
     const accessExpiration = parseInt(
       this.configService.getOrThrow('ACCESS_TOKEN_VALIDITY_DURATION_IN_SEC'),
     );
@@ -210,12 +308,12 @@ export class AuthService {
       this.configService.getOrThrow('REFRESH_TOKEN_VALIDITY_DURATION_IN_SEC'),
     );
 
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwtService.sign(params.accessPayload, {
       secret: this.configService.getOrThrow('JWT_SECRET'),
       expiresIn: accessExpiration,
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
+    const refreshToken = this.jwtService.sign(params.refreshPayload, {
       secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
       expiresIn: refreshExpiration,
     });
@@ -228,3 +326,38 @@ export class AuthService {
     };
   }
 }
+
+// async validateRefreshTokens(userId: number, refreshToken: string) {
+//   const user = await this.userService.getUserById(userId);
+
+//   if (!user) {
+//     this.logger.warn(
+//       { userId: userId },
+//       `User does not exist with the given id`,
+//     );
+//     throw new UnauthorizedException('Invalid Credentials');
+//   }
+
+//   if (!user.refreshTokenHash) {
+//     this.logger.warn(
+//       { userId: userId },
+//       'User does not have a refresh token set in the database',
+//     );
+//     throw new UnauthorizedException('Invalid Credentials');
+//   }
+
+//   const refreshTokenMatches = await bcrypt.compare(
+//     refreshToken,
+//     user.refreshTokenHash,
+//   );
+
+//   if (!refreshTokenMatches) {
+//     this.logger.warn(
+//       { userId: userId },
+//       'Refresh token does not match the one in the database',
+//     );
+//     throw new UnauthorizedException('Invalid credentials');
+//   }
+
+//   return user;
+// }
