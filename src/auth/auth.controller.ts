@@ -35,7 +35,7 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
+  // @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   login(
     @LocalUser() user: User,
     @Res({ passthrough: true }) response: Response,

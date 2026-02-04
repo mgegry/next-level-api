@@ -31,6 +31,9 @@ export class Tenant {
   @Column({ name: 'erp_config_encrypted', nullable: true, type: 'text' })
   erpConfigEncrypted: string;
 
+  @Column({ name: 'max_concurrent_sessions', type: 'int', nullable: true })
+  maxConcurrentSessions: number | null;
+
   @OneToMany(() => TenantMembership, (m) => m.tenant)
   memberships: TenantMembership[];
 

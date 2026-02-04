@@ -18,17 +18,21 @@ import { Request } from 'express';
 import { AccessUser } from './interfaces/access-user.interface';
 import { RefreshUser } from './interfaces/refresh-user.interface';
 import { AccessGrantedResponseDto } from './dtos/access-granted-response.dto';
+import { DataSource } from 'typeorm';
+import { TenantService } from 'src/tenant/services/tenant.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
+    private readonly dataSource: DataSource,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly userSessionService: UserSessionService,
     private readonly tenantMembershipService: TenantMembershipService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async login(
@@ -46,74 +50,182 @@ export class AuthService {
     // 2) Choose a default membership (simple: first)
     // Better later: choose last-used tenant, or admin-first.
     const membership = memberships[0];
+    const tenantId = membership.tenantId;
 
-    // 3) Enforce "one instance": revoke existing active sessions
-    await this.userSessionService.revokeAllActiveForUser(user.id);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const session = await this.userSessionService.createSession({
-      userId: user.id,
-      currentTenantId: membership.tenantId,
-      // optional: pass these in from controller if you want
-      userAgent: null,
-      deviceFingerprint: null,
-    });
+    try {
+      // 1) lock tenant row
+      const tenant = await this.tenantService.getTenantForUpdate(
+        tenantId,
+        queryRunner.manager,
+      );
+      if (!tenant) throw new UnauthorizedException('Tenant not found');
 
-    const accessPayload: AccessTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      sid: session.id,
-      tid: membership.tenantId,
-      mid: membership.id,
-      role: membership.role,
-    };
+      // 2) single device per user
+      await this.userSessionService.revokeAllActiveForUser(
+        user.id,
+        queryRunner.manager,
+      );
 
-    const refreshPayload: RefreshTokenPayload = {
-      sub: user.id,
-      sid: session.id,
-    };
+      // 3) enforce session cap (NULL = unlimited)
+      if (tenant.maxConcurrentSessions !== null) {
+        const activeCount = await this.userSessionService.countActiveByTenant(
+          tenantId,
+          queryRunner.manager,
+        );
+
+        if (activeCount >= tenant.maxConcurrentSessions) {
+          throw new ForbiddenException(
+            'Tenant has reached its active session limit',
+          );
+        }
+      }
+
+      // 4) create session
+      const session = await this.userSessionService.createSession(
+        {
+          userId: user.id,
+          currentTenantId: tenantId,
+          userAgent: null,
+          deviceFingerprint: null,
+        },
+        queryRunner.manager,
+      );
+
+      // 5) generate tokens
+      const accessPayload: AccessTokenPayload = {
+        sub: user.id,
+        email: user.email,
+        sid: session.id,
+        tid: membership.tenantId,
+        mid: membership.id,
+        role: membership.role,
+      };
+
+      const refreshPayload: RefreshTokenPayload = {
+        sub: user.id,
+        sid: session.id,
+      };
+
+      const { accessToken, refreshToken, accessExpires, refreshExpires } =
+        this.generateTokens({ accessPayload, refreshPayload });
+
+      // 6) store refresh hash on same session row
+      await this.userSessionService.setRefreshTokenHash(
+        session.id,
+        await bcrypt.hash(refreshToken, 10),
+        queryRunner.manager,
+      );
+
+      await queryRunner.commitTransaction();
+
+      const cookieOptions = this.getCookieOptions();
+
+      response.cookie('access_token', accessToken, {
+        ...cookieOptions,
+        expires: accessExpires,
+        path: '/',
+      });
+
+      response.cookie('refresh_token', refreshToken, {
+        ...cookieOptions,
+        expires: refreshExpires,
+        path: '/auth',
+      });
+
+      const tenants = memberships.map((m) => ({
+        id: m.tenantId,
+        name: m.tenant?.name ?? '', // because relations loaded
+        role: m.role,
+      }));
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: membership.role,
+        tenantId: membership.tenantId,
+        tenants: tenants,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
+    }
+
+    // // 3) Enforce "one instance": revoke existing active sessions
+    // await this.userSessionService.revokeAllActiveForUser(user.id);
+
+    // const session = await this.userSessionService.createSession({
+    //   userId: user.id,
+    //   currentTenantId: membership.tenantId,
+    //   userAgent: null,
+    //   deviceFingerprint: null,
+    // });
+
+    // const accessPayload: AccessTokenPayload = {
+    //   sub: user.id,
+    //   email: user.email,
+    //   sid: session.id,
+    //   tid: membership.tenantId,
+    //   mid: membership.id,
+    //   role: membership.role,
+    // };
+
+    // const refreshPayload: RefreshTokenPayload = {
+    //   sub: user.id,
+    //   sid: session.id,
+    // };
 
     // Generate tokens
-    const { accessToken, refreshToken, accessExpires, refreshExpires } =
-      this.generateTokens({ accessPayload, refreshPayload });
+    // const { accessToken, refreshToken, accessExpires, refreshExpires } =
+    //   this.generateTokens({ accessPayload, refreshPayload });
 
     // 6) Store refresh token hash on the session row
-    await this.userSessionService.setRefreshTokenHash(
-      session.id,
-      await bcrypt.hash(refreshToken, 10),
-    );
+    // await this.userSessionService.setRefreshTokenHash(
+    //   session.id,
+    //   await bcrypt.hash(refreshToken, 10),
+    // );
 
     // Add cookies to the response
-    const cookieOptions = this.getCookieOptions();
+    // const cookieOptions = this.getCookieOptions();
 
-    response.cookie('access_token', accessToken, {
-      ...cookieOptions,
-      expires: accessExpires,
-      path: '/',
-    });
+    // response.cookie('access_token', accessToken, {
+    //   ...cookieOptions,
+    //   expires: accessExpires,
+    //   path: '/',
+    // });
 
-    response.cookie('refresh_token', refreshToken, {
-      ...cookieOptions,
-      expires: refreshExpires,
-      path: '/auth',
-    });
+    // response.cookie('refresh_token', refreshToken, {
+    //   ...cookieOptions,
+    //   expires: refreshExpires,
+    //   path: '/auth',
+    // });
 
-    const tenants = memberships.map((m) => ({
-      id: m.tenantId,
-      name: m.tenant?.name ?? '', // because relations loaded
-      role: m.role,
-    }));
+    // const tenants = memberships.map((m) => ({
+    //   id: m.tenantId,
+    //   name: m.tenant?.name ?? '', // because relations loaded
+    //   role: m.role,
+    // }));
 
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: membership.role,
-      tenantId: membership.tenantId,
-      tenants: tenants,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+    // return {
+    //   id: user.id,
+    //   email: user.email,
+    //   firstName: user.firstName,
+    //   lastName: user.lastName,
+    //   role: membership.role,
+    //   tenantId: membership.tenantId,
+    //   tenants: tenants,
+    //   createdAt: user.createdAt,
+    //   updatedAt: user.updatedAt,
+    // };
   }
 
   async logout(userId: number, response: Response) {

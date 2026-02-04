@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserSession } from '../entities/user-session.entity';
-import { IsNull, Repository } from 'typeorm';
+import { EntityManager, IsNull, Repository } from 'typeorm';
+import {
+  MembershipStatus,
+  TenantMembership,
+} from 'src/tenant/entities/tenant-membership.entity';
 
 export interface CreateSessionInput {
   userId: number;
@@ -31,15 +35,26 @@ export class UserSessionRepository {
   /**
    * Enforce single device/session: revoke all active sessions for the user.
    */
-  async revokeAllActiveForUser(userId: number): Promise<void> {
-    await this.repository.update(
+  async revokeAllActiveForUser(
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const em = manager ?? this.repository.manager;
+
+    await em.update(
+      UserSession,
       { userId, isActive: true, revokedAt: IsNull() },
       { isActive: false, revokedAt: new Date() },
     );
   }
 
-  async createSession(userSession: CreateSessionInput): Promise<UserSession> {
-    const session = this.repository.create({
+  async createSession(
+    userSession: CreateSessionInput,
+    manager?: EntityManager,
+  ): Promise<UserSession> {
+    const em = manager ?? this.repository.manager;
+
+    const session = em.create(UserSession, {
       userId: userSession.userId,
       currentTenantId: userSession.currentTenantId,
       userAgent: userSession.userAgent ?? null,
@@ -49,18 +64,27 @@ export class UserSessionRepository {
       lastSeenAt: null,
     });
 
-    return this.repository.save(session);
+    return em.save(UserSession, session);
   }
 
   async setRefreshTokenHash(
     sessionId: number,
     refreshTokenHash: string,
-  ): Promise<void> {
-    await this.repository.update({ id: sessionId }, { refreshTokenHash });
+    manager?: EntityManager,
+  ) {
+    const em = manager ?? this.repository.manager;
+    await em.update(UserSession, { id: sessionId }, { refreshTokenHash });
   }
 
-  async setCurrentTenant(sessionId: number, tenantId: number): Promise<void> {
-    await this.repository.update(
+  async setCurrentTenant(
+    sessionId: number,
+    tenantId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const em = manager ?? this.repository.manager;
+
+    await em.update(
+      UserSession,
       { id: sessionId, isActive: true, revokedAt: IsNull() },
       { currentTenantId: tenantId },
     );
@@ -71,5 +95,28 @@ export class UserSessionRepository {
       { id: sessionId, isActive: true, revokedAt: IsNull() },
       { lastSeenAt: new Date() },
     );
+  }
+
+  async countActiveByTenant(
+    tenantId: number,
+    manager?: EntityManager,
+  ): Promise<number> {
+    const em = manager ?? this.repository.manager;
+
+    const row = await em
+      .createQueryBuilder(UserSession, 's')
+      .innerJoin(
+        TenantMembership,
+        'm',
+        'm.user_id = s.user_id AND m.tenant_id = s.current_tenant_id',
+      )
+      .where('s.current_tenant_id = :tenantId', { tenantId })
+      .andWhere('s.is_active = true')
+      .andWhere('s.revoked_at IS NULL')
+      .andWhere('m.status = :status', { status: MembershipStatus.ACTIVE })
+      .select('COUNT(*)', 'count')
+      .getRawOne<{ count: string }>();
+
+    return Number(row?.count ?? 0);
   }
 }

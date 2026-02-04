@@ -4,6 +4,7 @@ import {
   CreateSessionInput,
   UserSessionRepository,
 } from '../repositories/user-session.repository';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserSessionService {
@@ -24,25 +25,48 @@ export class UserSessionService {
     return session;
   }
 
-  async revokeAllActiveForUser(userId: number): Promise<void> {
-    await this.userSessionRepository.revokeAllActiveForUser(userId);
+  async revokeAllActiveForUser(
+    userId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.userSessionRepository.revokeAllActiveForUser(userId, manager);
   }
 
-  async createSession(userSession: CreateSessionInput): Promise<UserSession> {
-    return this.userSessionRepository.createSession(userSession);
+  async createSession(
+    userSession: CreateSessionInput,
+    manager?: EntityManager,
+  ): Promise<UserSession> {
+    return this.userSessionRepository.createSession(userSession, manager);
   }
 
   async setRefreshTokenHash(
     sessionId: number,
     refreshTokenHash: string,
+    manager?: EntityManager,
   ): Promise<void> {
     await this.userSessionRepository.setRefreshTokenHash(
       sessionId,
       refreshTokenHash,
+      manager,
     );
   }
 
-  async setCurrentTenant(sessionId: number, tenantId: number): Promise<void> {
-    await this.userSessionRepository.setCurrentTenant(sessionId, tenantId);
+  async setCurrentTenant(
+    sessionId: number,
+    tenantId: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    await this.userSessionRepository.setCurrentTenant(
+      sessionId,
+      tenantId,
+      manager,
+    );
+  }
+
+  async countActiveByTenant(
+    tenantId: number,
+    manager?: EntityManager,
+  ): Promise<number> {
+    return this.userSessionRepository.countActiveByTenant(tenantId, manager);
   }
 }
