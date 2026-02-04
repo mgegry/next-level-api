@@ -10,8 +10,6 @@ import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/user/entities/user.entity';
 import { CookieOptions, Response } from 'express';
-import { LoginResponseDto } from './dtos/login-response.dto';
-import { RefreshResponseDto } from './dtos/refresh-response.dto';
 import { UserSessionService } from 'src/user/services/user-session.service';
 import { TenantMembershipService } from 'src/tenant/services/tenant-membership.service';
 import { AccessTokenPayload } from './interfaces/access-token-payload.interface';
@@ -19,6 +17,7 @@ import { RefreshTokenPayload } from './interfaces/refresh-token-payload.interfac
 import { Request } from 'express';
 import { AccessUser } from './interfaces/access-user.interface';
 import { RefreshUser } from './interfaces/refresh-user.interface';
+import { AccessGrantedResponseDto } from './dtos/access-granted-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -32,11 +31,13 @@ export class AuthService {
     private readonly tenantMembershipService: TenantMembershipService,
   ) {}
 
-  async login(user: User, response: Response): Promise<LoginResponseDto> {
+  async login(
+    user: User,
+    response: Response,
+  ): Promise<AccessGrantedResponseDto> {
     // 1) Get active memberships
-    const memberships = await this.tenantMembershipService.getActiveByUserId(
-      user.id,
-    );
+    const memberships =
+      await this.tenantMembershipService.getActiveByUserWithTenant(user.id);
 
     if (!memberships.length) {
       throw new ForbiddenException('User has no active tenants');
@@ -96,6 +97,12 @@ export class AuthService {
       path: '/auth',
     });
 
+    const tenants = memberships.map((m) => ({
+      id: m.tenantId,
+      name: m.tenant?.name ?? '', // because relations loaded
+      role: m.role,
+    }));
+
     return {
       id: user.id,
       email: user.email,
@@ -103,6 +110,7 @@ export class AuthService {
       lastName: user.lastName,
       role: membership.role,
       tenantId: membership.tenantId,
+      tenants: tenants,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -130,7 +138,7 @@ export class AuthService {
   async refreshTokens(
     user: RefreshUser,
     response: Response,
-  ): Promise<RefreshResponseDto> {
+  ): Promise<AccessGrantedResponseDto> {
     // 1) Load session
     const session = await this.userSessionService.getSessionById(
       user.sessionId,
@@ -206,6 +214,15 @@ export class AuthService {
       path: '/',
     });
 
+    const tenantMemberships =
+      await this.tenantMembershipService.getActiveByUserWithTenant(dbUser.id);
+
+    const tenants = tenantMemberships.map((m) => ({
+      id: m.tenantId,
+      name: m.tenant?.name ?? '', // because relations loaded
+      role: m.role,
+    }));
+
     // 7) Return DTO (role/tenant from membership, profile fields from db user)
     return {
       id: dbUser.id,
@@ -214,6 +231,7 @@ export class AuthService {
       lastName: dbUser.lastName,
       role: membership.role,
       tenantId: membership.tenantId,
+      tenants: tenants,
       createdAt: dbUser.createdAt,
       updatedAt: dbUser.updatedAt,
     };
@@ -287,7 +305,7 @@ export class AuthService {
     accessUser: AccessUser,
     targetTenantId: number,
     response: Response,
-  ) {
+  ): Promise<AccessGrantedResponseDto> {
     // 1) Verify the user has ACTIVE membership in requested tenant
     const membership =
       await this.tenantMembershipService.getActiveByUserAndTenant(
@@ -343,6 +361,15 @@ export class AuthService {
       path: '/',
     });
 
+    const tenantMemberships =
+      await this.tenantMembershipService.getActiveByUserWithTenant(dbUser.id);
+
+    const tenants = tenantMemberships.map((m) => ({
+      id: m.tenantId,
+      name: m.tenant?.name ?? '', // because relations loaded
+      role: m.role,
+    }));
+
     // 7) Return something useful to frontend
     return {
       id: dbUser.id,
@@ -351,6 +378,7 @@ export class AuthService {
       lastName: dbUser.lastName,
       role: membership.role,
       tenantId: membership.tenantId,
+      tenants: tenants,
       createdAt: dbUser.createdAt,
       updatedAt: dbUser.updatedAt,
     };
