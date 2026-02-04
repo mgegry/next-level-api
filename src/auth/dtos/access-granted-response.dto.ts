@@ -13,7 +13,7 @@ export interface AccessGrantedResponseDto {
   lastName: string;
   role: string;
   tenantId: number;
-  tenants: TenantIdName[];
+  // tenants: TenantIdName[];
   createdAt: Date;
   updatedAt: Date;
 }

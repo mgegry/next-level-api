@@ -7,4 +7,5 @@ export interface AccessUser {
   tenantId: number;
   membershipId: number;
   role: Role;
+  tokenType: string;
 }

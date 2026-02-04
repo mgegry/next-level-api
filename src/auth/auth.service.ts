@@ -12,14 +12,15 @@ import { User } from 'src/user/entities/user.entity';
 import { CookieOptions, Response } from 'express';
 import { UserSessionService } from 'src/user/services/user-session.service';
 import { TenantMembershipService } from 'src/tenant/services/tenant-membership.service';
-import { AccessTokenPayload } from './interfaces/access-token-payload.interface';
+import { TenantTokenPayload } from './interfaces/tenant-token-payload.interface';
 import { RefreshTokenPayload } from './interfaces/refresh-token-payload.interface';
 import { Request } from 'express';
-import { AccessUser } from './interfaces/access-user.interface';
 import { RefreshUser } from './interfaces/refresh-user.interface';
 import { AccessGrantedResponseDto } from './dtos/access-granted-response.dto';
 import { DataSource } from 'typeorm';
 import { TenantService } from 'src/tenant/services/tenant.service';
+import { BootstrapTokenPayload } from './interfaces/bootstrap-token-payload.interface';
+import { MembershipStatus } from 'src/tenant/entities/tenant-membership.entity';
 
 @Injectable()
 export class AuthService {
@@ -39,193 +40,62 @@ export class AuthService {
     user: User,
     response: Response,
   ): Promise<AccessGrantedResponseDto> {
-    // 1) Get active memberships
-    const memberships =
-      await this.tenantMembershipService.getActiveByUserWithTenant(user.id);
+    await this.userSessionService.revokeAllActiveForUser(user.id);
 
-    if (!memberships.length) {
-      throw new ForbiddenException('User has no active tenants');
-    }
+    const session = await this.userSessionService.createSession({
+      userId: user.id,
+      currentTenantId: null,
+      userAgent: null,
+      deviceFingerprint: null,
+    });
 
-    // 2) Choose a default membership (simple: first)
-    // Better later: choose last-used tenant, or admin-first.
-    const membership = memberships[0];
-    const tenantId = membership.tenantId;
+    const bootstrapAccessPayload = {
+      typ: 'bootstrap' as const,
+      sub: user.id,
+      email: user.email,
+      sid: session.id,
+    };
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const refreshPayload = {
+      sub: user.id,
+      sid: session.id,
+    };
 
-    try {
-      // 1) lock tenant row
-      const tenant = await this.tenantService.getTenantForUpdate(
-        tenantId,
-        queryRunner.manager,
-      );
-      if (!tenant) throw new UnauthorizedException('Tenant not found');
-
-      // 2) single device per user
-      await this.userSessionService.revokeAllActiveForUser(
-        user.id,
-        queryRunner.manager,
-      );
-
-      // 3) enforce session cap (NULL = unlimited)
-      if (tenant.maxConcurrentSessions !== null) {
-        const activeCount = await this.userSessionService.countActiveByTenant(
-          tenantId,
-          queryRunner.manager,
-        );
-
-        if (activeCount >= tenant.maxConcurrentSessions) {
-          throw new ForbiddenException(
-            'Tenant has reached its active session limit',
-          );
-        }
-      }
-
-      // 4) create session
-      const session = await this.userSessionService.createSession(
-        {
-          userId: user.id,
-          currentTenantId: tenantId,
-          userAgent: null,
-          deviceFingerprint: null,
-        },
-        queryRunner.manager,
-      );
-
-      // 5) generate tokens
-      const accessPayload: AccessTokenPayload = {
-        sub: user.id,
-        email: user.email,
-        sid: session.id,
-        tid: membership.tenantId,
-        mid: membership.id,
-        role: membership.role,
-      };
-
-      const refreshPayload: RefreshTokenPayload = {
-        sub: user.id,
-        sid: session.id,
-      };
-
-      const { accessToken, refreshToken, accessExpires, refreshExpires } =
-        this.generateTokens({ accessPayload, refreshPayload });
-
-      // 6) store refresh hash on same session row
-      await this.userSessionService.setRefreshTokenHash(
-        session.id,
-        await bcrypt.hash(refreshToken, 10),
-        queryRunner.manager,
-      );
-
-      await queryRunner.commitTransaction();
-
-      const cookieOptions = this.getCookieOptions();
-
-      response.cookie('access_token', accessToken, {
-        ...cookieOptions,
-        expires: accessExpires,
-        path: '/',
+    const { accessToken, refreshToken, accessExpires, refreshExpires } =
+      this.generateTokens({
+        accessPayload: bootstrapAccessPayload,
+        refreshPayload,
       });
 
-      response.cookie('refresh_token', refreshToken, {
-        ...cookieOptions,
-        expires: refreshExpires,
-        path: '/auth',
-      });
+    await this.userSessionService.setRefreshTokenHash(
+      session.id,
+      await bcrypt.hash(refreshToken, 10),
+    );
 
-      const tenants = memberships.map((m) => ({
-        id: m.tenantId,
-        name: m.tenant?.name ?? '', // because relations loaded
-        role: m.role,
-      }));
+    const cookieOptions = this.getCookieOptions();
 
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: membership.role,
-        tenantId: membership.tenantId,
-        tenants: tenants,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      };
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
+    response.cookie('access_token', accessToken, {
+      ...cookieOptions,
+      expires: accessExpires,
+      path: '/',
+    });
 
-    // // 3) Enforce "one instance": revoke existing active sessions
-    // await this.userSessionService.revokeAllActiveForUser(user.id);
+    response.cookie('refresh_token', refreshToken, {
+      ...cookieOptions,
+      expires: refreshExpires,
+      path: '/auth',
+    });
 
-    // const session = await this.userSessionService.createSession({
-    //   userId: user.id,
-    //   currentTenantId: membership.tenantId,
-    //   userAgent: null,
-    //   deviceFingerprint: null,
-    // });
-
-    // const accessPayload: AccessTokenPayload = {
-    //   sub: user.id,
-    //   email: user.email,
-    //   sid: session.id,
-    //   tid: membership.tenantId,
-    //   mid: membership.id,
-    //   role: membership.role,
-    // };
-
-    // const refreshPayload: RefreshTokenPayload = {
-    //   sub: user.id,
-    //   sid: session.id,
-    // };
-
-    // Generate tokens
-    // const { accessToken, refreshToken, accessExpires, refreshExpires } =
-    //   this.generateTokens({ accessPayload, refreshPayload });
-
-    // 6) Store refresh token hash on the session row
-    // await this.userSessionService.setRefreshTokenHash(
-    //   session.id,
-    //   await bcrypt.hash(refreshToken, 10),
-    // );
-
-    // Add cookies to the response
-    // const cookieOptions = this.getCookieOptions();
-
-    // response.cookie('access_token', accessToken, {
-    //   ...cookieOptions,
-    //   expires: accessExpires,
-    //   path: '/',
-    // });
-
-    // response.cookie('refresh_token', refreshToken, {
-    //   ...cookieOptions,
-    //   expires: refreshExpires,
-    //   path: '/auth',
-    // });
-
-    // const tenants = memberships.map((m) => ({
-    //   id: m.tenantId,
-    //   name: m.tenant?.name ?? '', // because relations loaded
-    //   role: m.role,
-    // }));
-
-    // return {
-    //   id: user.id,
-    //   email: user.email,
-    //   firstName: user.firstName,
-    //   lastName: user.lastName,
-    //   role: membership.role,
-    //   tenantId: membership.tenantId,
-    //   tenants: tenants,
-    //   createdAt: user.createdAt,
-    //   updatedAt: user.updatedAt,
-    // };
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: null as any,
+      tenantId: null as any,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async logout(userId: number, response: Response) {
@@ -273,29 +143,40 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3) Determine tenant context from session
-    const tenantId = session.currentTenantId;
-    const membership =
-      await this.tenantMembershipService.getActiveByUserAndTenant(
-        user.userId,
-        tenantId,
-      );
-
-    if (!membership) {
-      throw new ForbiddenException('No access to tenant');
-    }
-
-    // 4) Mint new tokens
     const dbUser = await this.userService.getUserByIdOrThrow(user.userId);
 
-    const accessPayload = {
-      sub: dbUser.id,
-      email: dbUser.email,
-      sid: session.id,
-      tid: membership.tenantId,
-      mid: membership.id,
-      role: membership.role,
-    };
+    let accessPayload: any;
+
+    if (session.currentTenantId == null) {
+      // BOOTSTRAP ACCESS TOKEN (no tenant selected yet)
+      accessPayload = {
+        typ: 'bootstrap',
+        sub: dbUser.id,
+        email: dbUser.email,
+        sid: session.id,
+      };
+    } else {
+      const tenantId = session.currentTenantId;
+      const membership =
+        await this.tenantMembershipService.getActiveByUserAndTenant(
+          user.userId,
+          tenantId,
+        );
+
+      if (!membership) {
+        throw new ForbiddenException('No access to tenant');
+      }
+
+      accessPayload = {
+        typ: 'tenant' as const,
+        sub: dbUser.id,
+        email: dbUser.email,
+        sid: session.id,
+        tid: membership.tenantId,
+        mid: membership.id,
+        role: membership.role,
+      };
+    }
 
     const refreshPayload = {
       sub: dbUser.id,
@@ -326,26 +207,72 @@ export class AuthService {
       path: '/',
     });
 
-    const tenantMemberships =
-      await this.tenantMembershipService.getActiveByUserWithTenant(dbUser.id);
-
-    const tenants = tenantMemberships.map((m) => ({
-      id: m.tenantId,
-      name: m.tenant?.name ?? '', // because relations loaded
-      role: m.role,
-    }));
-
     // 7) Return DTO (role/tenant from membership, profile fields from db user)
     return {
       id: dbUser.id,
       email: dbUser.email,
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
-      role: membership.role,
-      tenantId: membership.tenantId,
-      tenants: tenants,
+      role: accessPayload.typ === 'tenant' ? accessPayload.role : null,
+      tenantId: accessPayload.typ === 'tenant' ? accessPayload.tid : null,
       createdAt: dbUser.createdAt,
       updatedAt: dbUser.updatedAt,
+    };
+  }
+
+  // For Bootstrap Jwt Strategy
+  async validateBootstrapAccess(payload: BootstrapTokenPayload) {
+    if (!payload || payload.typ !== 'bootstrap') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const session = await this.userSessionService.assertSessionActive(
+      payload.sid,
+      payload.sub,
+    );
+    if (!session) throw new UnauthorizedException('Session invalid');
+
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      sessionId: payload.sid,
+      tokenType: 'bootstrap' as const,
+    };
+  }
+
+  // For Tenant Jwt Strategy
+  async validateTenantAccess(payload: TenantTokenPayload) {
+    if (!payload || payload.typ !== 'tenant') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const session = await this.userSessionService.assertSessionActive(
+      payload.sid,
+      payload.sub,
+    );
+    if (!session) throw new UnauthorizedException('Session invalid');
+
+    const membership =
+      await this.tenantMembershipService.getTenantMembershipById(payload.mid);
+    if (
+      !membership ||
+      membership.userId !== payload.sub ||
+      membership.tenantId !== payload.tid
+    ) {
+      throw new UnauthorizedException('Membership invalid');
+    }
+    if (membership.status !== MembershipStatus.ACTIVE) {
+      throw new UnauthorizedException('Membership inactive');
+    }
+
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      sessionId: payload.sid,
+      tenantId: payload.tid,
+      membershipId: payload.mid,
+      role: membership.role,
+      tokenType: 'tenant' as const,
     };
   }
 
@@ -368,38 +295,11 @@ export class AuthService {
     return user;
   }
 
-  // For Jwt Strategy
-  async validateAccessContext(payload: AccessTokenPayload) {
-    const session = await this.userSessionService.assertSessionActive(
-      payload.sid,
-      payload.sub,
-    );
-    if (!session) throw new UnauthorizedException('Session invalid');
-
-    const membership =
-      await this.tenantMembershipService.assertMembershipActive({
-        membershipId: payload.mid,
-        userId: payload.sub,
-        tenantId: payload.tid,
-      });
-    if (!membership) throw new UnauthorizedException('Membership invalid');
-
-    return {
-      userId: payload.sub,
-      email: payload.email,
-      sessionId: payload.sid,
-      tenantId: payload.tid,
-      membershipId: payload.mid,
-      role: membership.role, // source of truth
-    };
-  }
-
   // For RefreshStrategy
   async validateRefreshContext(req: Request, payload: RefreshTokenPayload) {
     const refreshToken = req.cookies?.refresh_token;
     if (!refreshToken) throw new UnauthorizedException('Missing refresh token');
 
-    // optional: fail fast if session revoked
     const session = await this.userSessionService.assertSessionActive(
       payload.sid,
       payload.sub,
@@ -413,59 +313,73 @@ export class AuthService {
     };
   }
 
-  async switchTenant(
-    accessUser: AccessUser,
-    targetTenantId: number,
+  async switchTenantFromBootstrap(
+    bootstrapUser: { userId: number; sessionId: number; email: string },
+    tenantId: number,
     response: Response,
-  ): Promise<AccessGrantedResponseDto> {
-    // 1) Verify the user has ACTIVE membership in requested tenant
+  ) {
+    // must have active membership
     const membership =
       await this.tenantMembershipService.getActiveByUserAndTenant(
-        accessUser.userId,
-        targetTenantId,
+        bootstrapUser.userId,
+        tenantId,
+      );
+    if (!membership) throw new ForbiddenException('No access to this tenant');
+
+    // transaction for seat enforcement
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+
+    try {
+      const tenant = await this.tenantService.getTenantForUpdate(
+        tenantId,
+        qr.manager,
+      );
+      if (!tenant) throw new UnauthorizedException('Tenant not found');
+
+      // enforce cap (strong count recommended)
+      if (tenant.maxConcurrentSessions !== null) {
+        const activeCount = await this.userSessionService.countActiveByTenant(
+          tenantId,
+          qr.manager,
+        );
+        if (activeCount >= tenant.maxConcurrentSessions) {
+          throw new ForbiddenException(
+            'Tenant has reached its active session limit',
+          );
+        }
+      }
+
+      // set current tenant on session
+      await this.userSessionService.setCurrentTenant(
+        bootstrapUser.sessionId,
+        tenantId,
+        qr.manager,
       );
 
-    if (!membership) {
-      throw new ForbiddenException('No access to this tenant');
+      await qr.commitTransaction();
+    } catch (e) {
+      await qr.rollbackTransaction();
+      throw e;
+    } finally {
+      await qr.release();
     }
 
-    // 2) Optional but recommended: ensure session is still valid/active
-    const session = await this.userSessionService.getSessionById(
-      accessUser.sessionId,
-    );
-    if (
-      !session ||
-      !session.isActive ||
-      session.revokedAt ||
-      session.userId !== accessUser.userId
-    ) {
-      throw new UnauthorizedException('Session invalid');
-    }
-
-    // 3) Update session tenant context (so refresh knows which tenant to mint access for)
-    await this.userSessionService.setCurrentTenant(
-      accessUser.sessionId,
-      targetTenantId,
-    );
-
-    // 4) Load user profile if you want to return firstName/lastName/etc
-    const dbUser = await this.userService.getUserByIdOrThrow(accessUser.userId);
-
-    // 5) Mint NEW access token (tenant-scoped) using SAME session id
-    const accessPayload: AccessTokenPayload = {
-      sub: dbUser.id,
-      email: dbUser.email,
-      sid: accessUser.sessionId,
-      tid: membership.tenantId,
+    // mint TENANT access token
+    const accessPayload = {
+      typ: 'tenant' as const,
+      sub: bootstrapUser.userId,
+      email: bootstrapUser.email,
+      sid: bootstrapUser.sessionId,
+      tid: tenantId,
       mid: membership.id,
       role: membership.role,
     };
 
-    // We do NOT need a new refresh token on switch
     const { accessToken, accessExpires } =
       this.generateAccessTokenOnly(accessPayload);
 
-    // 6) Set access cookie
     const cookieOptions = this.getCookieOptions();
     response.cookie('access_token', accessToken, {
       ...cookieOptions,
@@ -473,30 +387,10 @@ export class AuthService {
       path: '/',
     });
 
-    const tenantMemberships =
-      await this.tenantMembershipService.getActiveByUserWithTenant(dbUser.id);
-
-    const tenants = tenantMemberships.map((m) => ({
-      id: m.tenantId,
-      name: m.tenant?.name ?? '', // because relations loaded
-      role: m.role,
-    }));
-
-    // 7) Return something useful to frontend
-    return {
-      id: dbUser.id,
-      email: dbUser.email,
-      firstName: dbUser.firstName,
-      lastName: dbUser.lastName,
-      role: membership.role,
-      tenantId: membership.tenantId,
-      tenants: tenants,
-      createdAt: dbUser.createdAt,
-      updatedAt: dbUser.updatedAt,
-    };
+    return { tenantId, role: membership.role, membershipId: membership.id };
   }
 
-  private generateAccessTokenOnly(accessPayload: AccessTokenPayload) {
+  private generateAccessTokenOnly(accessPayload: any) {
     const accessExpiration = parseInt(
       this.configService.getOrThrow('ACCESS_TOKEN_VALIDITY_DURATION_IN_SEC'),
     );
@@ -526,10 +420,7 @@ export class AuthService {
     return baseOptions;
   }
 
-  private generateTokens(params: {
-    accessPayload: AccessTokenPayload;
-    refreshPayload: RefreshTokenPayload;
-  }) {
+  private generateTokens(params: { accessPayload: any; refreshPayload: any }) {
     const accessExpiration = parseInt(
       this.configService.getOrThrow('ACCESS_TOKEN_VALIDITY_DURATION_IN_SEC'),
     );

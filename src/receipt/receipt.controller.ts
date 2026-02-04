@@ -10,7 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { JwtTenantGuard } from 'src/auth/guards/jwt-tenant.guard';
 import { ReceiptService } from './services/receipt.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AwsS3Service } from 'src/core/aws/aws-s3.service';
@@ -26,7 +26,7 @@ export class ReceiptController {
   ) {}
 
   @Post('scan')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtTenantGuard)
   @UseInterceptors(FileInterceptor('file'))
   scanReceipt(
     @CurrentAccessUser() user: AccessUser,
@@ -36,13 +36,13 @@ export class ReceiptController {
   }
 
   @Get()
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtTenantGuard)
   getReceipts(@CurrentAccessUser() user: AccessUser) {
     return this.receiptService.getAllReceiptsForUser(user.userId);
   }
 
   @Get(':id/items')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtTenantGuard)
   getReceiptItems(
     @CurrentAccessUser() user: AccessUser,
     @Param('id', ParseIntPipe) id: number,
@@ -51,7 +51,7 @@ export class ReceiptController {
   }
 
   @Get(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtTenantGuard)
   getReceipt(
     @CurrentAccessUser() user: AccessUser,
     @Param('id', ParseIntPipe) id: number,

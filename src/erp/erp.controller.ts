@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ErpService } from './erp.service';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { JwtTenantGuard } from 'src/auth/guards/jwt-tenant.guard';
 import { CurrentAccessUser } from 'src/auth/decorators/current-access-user.decorator';
 import { User } from 'src/user/entities/user.entity';
 import { PaginatedRequestDto } from './dtos/request/paginated-request.dto';

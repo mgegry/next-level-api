@@ -9,7 +9,7 @@ import {
 
 export interface CreateSessionInput {
   userId: number;
-  currentTenantId: number;
+  currentTenantId: number | null;
   userAgent?: string | null;
   deviceFingerprint?: string | null;
 }

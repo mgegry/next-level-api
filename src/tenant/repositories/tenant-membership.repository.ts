@@ -43,7 +43,7 @@ export class TenantMembershipRepository {
     return this.repository.find({
       where: { userId, status: MembershipStatus.ACTIVE },
       relations: { tenant: true },
-      order: { tenantId: 'ASC' },
+      order: { tenantId: 'ASC', id: 'ASC' },
     });
   }
 }

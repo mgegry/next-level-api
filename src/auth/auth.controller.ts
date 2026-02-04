@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtGuard } from './guards/jwt.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { LocalGuard } from './guards/local.guard';
 import { User } from 'src/user/entities/user.entity';
@@ -13,6 +12,8 @@ import type { RefreshUser } from './interfaces/refresh-user.interface';
 import type { AccessUser } from './interfaces/access-user.interface';
 import { SwitchTenantRequestDto } from './dtos/switch-tenant-request.dto';
 import { AccessGrantedResponseDto } from './dtos/access-granted-response.dto';
+import { JwtBootstrapGuard } from './guards/jwt-bootstrap.guard';
+import { JwtAnyGuard } from './guards/jwt-any.guard';
 
 //REVIEW - Might want to add Redis for IP-based login lockouts when deploying for security
 
@@ -21,7 +22,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Get('status')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAnyGuard)
   status(@CurrentAccessUser() user: AccessUser) {
     return {
       userId: user.userId,
@@ -35,7 +36,7 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  // @Throttle({ default: { ttl: seconds(60), limit: 5 } })
+  @Throttle({ default: { ttl: seconds(60), limit: 5 } })
   login(
     @LocalUser() user: User,
     @Res({ passthrough: true }) response: Response,
@@ -63,12 +64,16 @@ export class AuthController {
   }
 
   @Post('switch-tenant')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtAnyGuard)
   switchTenant(
     @CurrentAccessUser() user: AccessUser,
     @Body() dto: SwitchTenantRequestDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<AccessGrantedResponseDto> {
-    return this.authService.switchTenant(user, dto.tenantId, response);
+  ): Promise<any> {
+    return this.authService.switchTenantFromBootstrap(
+      user,
+      dto.tenantId,
+      response,
+    );
   }
 }

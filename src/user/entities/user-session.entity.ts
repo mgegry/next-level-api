@@ -37,8 +37,8 @@ export class UserSession {
   @Column({ name: 'device_fingerprint', nullable: true, type: 'text' })
   deviceFingerprint: string | null;
 
-  @Column({ name: 'current_tenant_id' })
-  currentTenantId: number;
+  @Column({ name: 'current_tenant_id', type: 'int', nullable: true })
+  currentTenantId: number | null;
 
   @Index()
   @Column({ name: 'is_active', default: true })

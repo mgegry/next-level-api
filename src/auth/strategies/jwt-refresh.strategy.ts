@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { AuthService } from '../auth.service';
 import { Request } from 'express';
 import { Strategy, ExtractJwt } from 'passport-jwt';
-import { AccessTokenPayload } from '../interfaces/access-token-payload.interface';
+import { RefreshTokenPayload } from '../interfaces/refresh-token-payload.interface';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -26,15 +26,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     });
   }
 
-  async validate(request: Request, payload: AccessTokenPayload) {
-    // const refreshToken = request.cookies['refresh_token'];
-
-    // if (!refreshToken) {
-    //   this.logger.warn('Refresh token missing from request');
-    //   throw new UnauthorizedException('Invalid Credentials');
-    // }
-
-    // return this.authService.validateRefreshTokens(payload.id, refreshToken);
+  async validate(request: Request, payload: RefreshTokenPayload) {
     return this.authService.validateRefreshContext(request, payload);
   }
 }
