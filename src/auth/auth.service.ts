@@ -283,6 +283,95 @@ export class AuthService {
     };
   }
 
+  async switchTenant(
+    accessUser: AccessUser,
+    targetTenantId: number,
+    response: Response,
+  ) {
+    // 1) Verify the user has ACTIVE membership in requested tenant
+    const membership =
+      await this.tenantMembershipService.findActiveByUserAndTenant(
+        accessUser.userId,
+        targetTenantId,
+      );
+
+    if (!membership) {
+      throw new ForbiddenException('No access to this tenant');
+    }
+
+    // 2) Optional but recommended: ensure session is still valid/active
+    const session = await this.userSessionService.getSessionById(
+      accessUser.sessionId,
+    );
+    if (
+      !session ||
+      !session.isActive ||
+      session.revokedAt ||
+      session.userId !== accessUser.userId
+    ) {
+      throw new UnauthorizedException('Session invalid');
+    }
+
+    // 3) Update session tenant context (so refresh knows which tenant to mint access for)
+    await this.userSessionService.setCurrentTenant(
+      accessUser.sessionId,
+      targetTenantId,
+    );
+
+    // 4) Load user profile if you want to return firstName/lastName/etc
+    const dbUser = await this.userService.getUserByIdOrThrow(accessUser.userId);
+
+    // 5) Mint NEW access token (tenant-scoped) using SAME session id
+    const accessPayload: AccessTokenPayload = {
+      sub: dbUser.id,
+      email: dbUser.email,
+      sid: accessUser.sessionId,
+      tid: membership.tenantId,
+      mid: membership.id,
+      role: membership.role,
+    };
+
+    // We do NOT need a new refresh token on switch
+    const { accessToken, accessExpires } =
+      this.generateAccessTokenOnly(accessPayload);
+
+    // 6) Set access cookie
+    const cookieOptions = this.getCookieOptions();
+    response.cookie('access_token', accessToken, {
+      ...cookieOptions,
+      expires: accessExpires,
+      path: '/',
+    });
+
+    // 7) Return something useful to frontend
+    return {
+      id: dbUser.id,
+      email: dbUser.email,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+      role: membership.role,
+      tenantId: membership.tenantId,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
+    };
+  }
+
+  private generateAccessTokenOnly(accessPayload: AccessTokenPayload) {
+    const accessExpiration = parseInt(
+      this.configService.getOrThrow('ACCESS_TOKEN_VALIDITY_DURATION_IN_SEC'),
+    );
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      secret: this.configService.getOrThrow('JWT_SECRET'),
+      expiresIn: accessExpiration,
+    });
+
+    return {
+      accessToken,
+      accessExpires: new Date(Date.now() + accessExpiration * 1000),
+    };
+  }
+
   private getCookieOptions() {
     const isProd = this.configService.get('NODE_ENV') === 'production';
 
@@ -326,38 +415,3 @@ export class AuthService {
     };
   }
 }
-
-// async validateRefreshTokens(userId: number, refreshToken: string) {
-//   const user = await this.userService.getUserById(userId);
-
-//   if (!user) {
-//     this.logger.warn(
-//       { userId: userId },
-//       `User does not exist with the given id`,
-//     );
-//     throw new UnauthorizedException('Invalid Credentials');
-//   }
-
-//   if (!user.refreshTokenHash) {
-//     this.logger.warn(
-//       { userId: userId },
-//       'User does not have a refresh token set in the database',
-//     );
-//     throw new UnauthorizedException('Invalid Credentials');
-//   }
-
-//   const refreshTokenMatches = await bcrypt.compare(
-//     refreshToken,
-//     user.refreshTokenHash,
-//   );
-
-//   if (!refreshTokenMatches) {
-//     this.logger.warn(
-//       { userId: userId },
-//       'Refresh token does not match the one in the database',
-//     );
-//     throw new UnauthorizedException('Invalid credentials');
-//   }
-
-//   return user;
-// }

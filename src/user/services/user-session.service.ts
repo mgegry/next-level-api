@@ -41,4 +41,8 @@ export class UserSessionService {
       refreshTokenHash,
     );
   }
+
+  async setCurrentTenant(sessionId: number, tenantId: number): Promise<void> {
+    await this.userSessionRepository.setCurrentTenant(sessionId, tenantId);
+  }
 }

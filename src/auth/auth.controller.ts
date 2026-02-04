@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './guards/jwt.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
@@ -13,6 +13,8 @@ import { CurrentRefreshUser } from './decorators/current-refresh-user.decorator'
 import { LocalUser } from './decorators/local-user.decorator';
 import type { RefreshUser } from './interfaces/refresh-user.interface';
 import type { AccessUser } from './interfaces/access-user.interface';
+import { SwitchTenantRequestDto } from './dtos/switch-tenant-request.dto';
+import { SwitchTenantResponseDto } from './dtos/switch-tenant-response.dto';
 
 //REVIEW - Might want to add Redis for IP-based login lockouts when deploying for security
 
@@ -60,5 +62,15 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     return this.authService.logout(user.userId, response);
+  }
+
+  @Post('switch-tenant')
+  @UseGuards(JwtGuard)
+  switchTenant(
+    @CurrentAccessUser() user: AccessUser,
+    @Body() dto: SwitchTenantRequestDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<SwitchTenantResponseDto> {
+    return this.authService.switchTenant(user, dto.tenantId, response);
   }
 }
