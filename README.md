@@ -1,98 +1,137 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Unified ERP Platform API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A multi-tenant SaaS platform that provides **one unified interface** for working with **multiple ERP systems**, such as **Softone**, **WinMentor Enterprise** (Romania), and other ERP providers — all integrated into a single application.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The goal of this project is to remove the need for businesses to juggle multiple ERP interfaces by offering a **centralized, consistent, and extensible layer** on top of existing ERP systems.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Vision
 
-## Project setup
+Businesses often rely on different ERP systems depending on region, industry, or legacy constraints. Each ERP comes with:
+- its own UI
+- its own workflows
+- its own API conventions
 
-```bash
-$ pnpm install
-```
+This project solves that by:
+- normalizing ERP integrations behind a single backend
+- exposing one consistent UI and API
+- allowing businesses to manage operations across ERP systems from **one app**
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ pnpm run start
+## 🧠 Core Concepts
 
-# watch mode
-$ pnpm run start:dev
+### 1. Multi-Tenant Architecture
+- Each **tenant** represents a business.
+- A tenant is linked to **one ERP system** (Softone, WinMentor, etc.).
+- Users can belong to **multiple tenants**.
+- Access is controlled via **memberships** and **roles per tenant**.
 
-# production mode
-$ pnpm run start:prod
-```
+### 2. Unified ERP Interface
+All ERP providers are accessed through a **common abstraction layer**, allowing:
+- shared workflows
+- consistent data models
+- ERP-specific logic isolated behind adapters
 
-## Run tests
+This makes adding new ERP integrations straightforward and safe.
 
-```bash
-# unit tests
-$ pnpm run test
+---
 
-# e2e tests
-$ pnpm run test:e2e
+## 🔐 Authentication & Authorization Model
 
-# test coverage
-$ pnpm run test:cov
-```
+### Session-Based Access (Seat Limiting)
+- Unlimited users can exist per tenant.
+- Each tenant has a configurable **maximum number of concurrent sessions**.
+- A session represents an active login (device/browser).
+- This aligns pricing with **actual usage**, not user count.
 
-## Deployment
+### Login Flow (High-Level)
+1. User logs in → session is created.
+2. User receives a **bootstrap access token** (no tenant selected).
+3. User selects a tenant.
+4. System enforces tenant session limits.
+5. A **tenant-scoped access token** is issued.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Token Strategy
+- **Access Token**
+  - Short-lived
+  - Stored in httpOnly cookies
+  - Either:
+    - bootstrap (no tenant)
+    - tenant-scoped (includes role & tenant context)
+- **Refresh Token**
+  - Long-lived
+  - Rotated on every refresh
+  - Bound to a single session
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Security Guarantees
+- One active session per user
+- Immediate revocation on logout or re-login
+- Membership and session validated on every request
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+---
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🏢 ERP Integrations
 
-## Resources
+The platform is designed to support multiple ERP systems, including but not limited to:
+- **Softone**
+- **WinMentor Enterprise** (Romania)
+- Other regional or enterprise ERPs
 
-Check out a few resources that may come in handy when working with NestJS:
+Each ERP integration:
+- lives behind a dedicated adapter/service
+- conforms to a shared internal contract
+- can be enabled per tenant
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+This ensures that adding a new ERP does **not** impact existing tenants.
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 🧱 Tech Stack
 
-## Stay in touch
+### Backend
+- **NestJS**
+- **TypeORM**
+- **PostgreSQL**
+- **JWT (access + refresh tokens)**
+- **Passport.js**
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### Frontend
+- **Angular**
+- Cookie-based authentication (`httpOnly`)
+- Tenant-aware UI
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 🧩 Key Modules
+
+- **Auth** – authentication, sessions, token lifecycle
+- **User** – users, profiles
+- **Tenant** – businesses and ERP configuration
+- **Membership** – user ↔ tenant relationships
+- **Session** – concurrent access & seat enforcement
+- **ERP Adapters** – ERP-specific logic behind a unified interface
+
+---
+
+## 🎯 Why This Project Exists
+
+This platform exists to:
+- simplify ERP usage for businesses
+- reduce ERP lock-in
+- enable multi-ERP operations in one system
+- provide a scalable foundation for ERP-driven SaaS products
+
+---
+
+## 🛠️ Status
+
+This project is under active development.  
+The architecture is designed to scale as new ERP systems, features, and tenants are added.
+
+---
+
+## 📄 License
+
+TBD
