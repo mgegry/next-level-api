@@ -99,6 +99,7 @@ This ensures that adding a new ERP does **not** impact existing tenants.
 
 ### Frontend
 - **Angular**
+- PrimeNg
 - Cookie-based authentication (`httpOnly`)
 - Tenant-aware UI
 
