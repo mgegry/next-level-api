@@ -8,8 +8,9 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { Tenant } from './tenant.entity';
+import { Tenant } from '../tenant/entities/tenant.entity';
 import { User } from 'src/user/entities/user.entity';
+import { TenantRole } from 'src/access-control/entities/tenant-role.entity';
 
 export enum Role {
   ADMIN = 'admin',
@@ -41,8 +42,12 @@ export class TenantMembership {
   @Column({ name: 'user_id' })
   userId: number;
 
-  @Column({ type: 'enum', enum: Role, name: 'role' })
-  role: Role;
+  @Column({ name: 'role_id', type: 'int', nullable: true })
+  roleId: number | null;
+
+  @ManyToOne(() => TenantRole, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'role_id' })
+  role: TenantRole | null;
 
   @Column({
     type: 'enum',

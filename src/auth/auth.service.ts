@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { User } from 'src/user/entities/user.entity';
 import { CookieOptions, Response } from 'express';
 import { UserSessionService } from 'src/user/services/user-session.service';
-import { TenantMembershipService } from 'src/tenant/services/tenant-membership.service';
+import { TenantMembershipService } from 'src/membership/tenant-membership.service';
 import { TenantTokenPayload } from './interfaces/tenant-token-payload.interface';
 import { RefreshTokenPayload } from './interfaces/refresh-token-payload.interface';
 import { Request } from 'express';
@@ -20,7 +20,7 @@ import { AccessGrantedResponseDto } from './dtos/access-granted-response.dto';
 import { DataSource } from 'typeorm';
 import { TenantService } from 'src/tenant/services/tenant.service';
 import { BootstrapTokenPayload } from './interfaces/bootstrap-token-payload.interface';
-import { MembershipStatus } from 'src/tenant/entities/tenant-membership.entity';
+import { MembershipStatus } from 'src/membership/tenant-membership.entity';
 
 @Injectable()
 export class AuthService {
@@ -67,9 +67,10 @@ export class AuthService {
         refreshPayload,
       });
 
-    await this.userSessionService.setRefreshTokenHash(
+    await this.userSessionService.updateRefreshCredentials(
       session.id,
       await bcrypt.hash(refreshToken, 10),
+      refreshExpires,
     );
 
     const cookieOptions = this.getCookieOptions();
@@ -187,9 +188,10 @@ export class AuthService {
       this.generateTokens({ accessPayload, refreshPayload });
 
     // 5) Rotate refresh token hash on session
-    await this.userSessionService.setRefreshTokenHash(
+    await this.userSessionService.updateRefreshCredentials(
       session.id,
       await bcrypt.hash(refreshToken, 10),
+      refreshExpires, // from generateTokens()
     );
 
     // 6) Set cookies

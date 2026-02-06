@@ -20,8 +20,18 @@ export class UserSessionService {
   ): Promise<UserSession | null> {
     const session = await this.userSessionRepository.findById(sessionId);
     if (!session) return null;
+
     if (!session.isActive || session.revokedAt) return null;
+
     if (session.userId !== userId) return null;
+
+    if (
+      session.refreshExpiresAt &&
+      session.refreshExpiresAt.getTime() <= Date.now()
+    ) {
+      return null;
+    }
+
     return session;
   }
 
@@ -68,5 +78,17 @@ export class UserSessionService {
     manager?: EntityManager,
   ): Promise<number> {
     return this.userSessionRepository.countActiveByTenant(tenantId, manager);
+  }
+
+  async updateRefreshCredentials(
+    sessionId: number,
+    refreshTokenHash: string,
+    refreshExpiresAt: Date,
+  ): Promise<void> {
+    await this.userSessionRepository.updateRefreshCredentials(
+      sessionId,
+      refreshTokenHash,
+      refreshExpiresAt,
+    );
   }
 }

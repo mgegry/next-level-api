@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { TenantMembershipRepository } from '../repositories/tenant-membership.repository';
-import {
-  MembershipStatus,
-  TenantMembership,
-} from '../entities/tenant-membership.entity';
+import { TenantMembershipRepository } from './tenant-membership.repository';
+import { MembershipStatus, TenantMembership } from './tenant-membership.entity';
 
 @Injectable()
 export class TenantMembershipService {

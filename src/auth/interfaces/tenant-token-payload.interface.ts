@@ -1,4 +1,4 @@
-import { Role } from 'src/tenant/entities/tenant-membership.entity';
+import { Role } from 'src/membership/tenant-membership.entity';
 
 export interface TenantTokenPayload {
   typ: 'tenant';

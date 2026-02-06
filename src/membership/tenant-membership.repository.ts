@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  MembershipStatus,
-  TenantMembership,
-} from '../entities/tenant-membership.entity';
+import { MembershipStatus, TenantMembership } from './tenant-membership.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -45,5 +42,17 @@ export class TenantMembershipRepository {
       relations: { tenant: true },
       order: { tenantId: 'ASC', id: 'ASC' },
     });
+  }
+
+  async assignRole(membershipId: number, roleId: number | null): Promise<void> {
+    await this.repository.update({ id: membershipId }, { roleId });
+  }
+
+  async listMembershipIdsByRoleId(roleId: number): Promise<number[]> {
+    const rows = await this.repository.find({
+      where: { roleId },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
   }
 }

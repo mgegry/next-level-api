@@ -8,16 +8,18 @@ import { UserSessionRepository } from './repositories/user-session.repository';
 import { UserSession } from './entities/user-session.entity';
 import { MeController } from './me.controller';
 import { MeService } from './services/me.service';
-import { TenantModule } from 'src/tenant/tenant.module';
+import { MembershipModule } from 'src/membership/membership.module';
+import { SessionCleanupService } from './services/session-cleanup.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserSession]), TenantModule],
+  imports: [TypeOrmModule.forFeature([User, UserSession]), MembershipModule],
   providers: [
     UserService,
     UserRepository,
     UserSessionService,
     UserSessionRepository,
     MeService,
+    SessionCleanupService,
   ],
   exports: [TypeOrmModule, UserService, UserSessionService],
   controllers: [MeController],

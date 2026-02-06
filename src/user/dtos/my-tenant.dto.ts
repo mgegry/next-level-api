@@ -1,4 +1,4 @@
-import { Role } from 'src/tenant/entities/tenant-membership.entity';
+import { Role } from 'src/membership/tenant-membership.entity';
 import { ErpProvider } from 'src/tenant/entities/tenant.entity';
 
 export interface MyTenantDto {

@@ -8,15 +8,16 @@ import { ReceiptRepository } from './repositories/receipt.repository';
 import { HttpModule } from '@nestjs/axios';
 import { ReceiptItemRepository } from './repositories/receipt-item.repository';
 import { AwsModule } from 'src/core/aws/aws.module';
+import { AccessControlModule } from 'src/access-control/access-control.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Receipt, ReceiptItem]),
+    AccessControlModule,
     HttpModule,
     AwsModule,
   ],
-  exports: [TypeOrmModule],
-  controllers: [ReceiptController],
   providers: [ReceiptService, ReceiptRepository, ReceiptItemRepository],
+  controllers: [ReceiptController],
 })
 export class ReceiptModule {}

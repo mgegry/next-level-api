@@ -1,4 +1,4 @@
-import { TenantMembership } from 'src/tenant/entities/tenant-membership.entity';
+import { TenantMembership } from 'src/membership/tenant-membership.entity';
 import {
   Column,
   CreateDateColumn,

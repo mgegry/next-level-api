@@ -5,7 +5,7 @@ import { EntityManager, IsNull, Repository } from 'typeorm';
 import {
   MembershipStatus,
   TenantMembership,
-} from 'src/tenant/entities/tenant-membership.entity';
+} from 'src/membership/tenant-membership.entity';
 
 export interface CreateSessionInput {
   userId: number;
@@ -113,10 +113,43 @@ export class UserSessionRepository {
       .where('s.current_tenant_id = :tenantId', { tenantId })
       .andWhere('s.is_active = true')
       .andWhere('s.revoked_at IS NULL')
+      .andWhere('s.refresh_expires_at IS NOT NULL')
+      .andWhere('s.refresh_expires_at > NOW()')
       .andWhere('m.status = :status', { status: MembershipStatus.ACTIVE })
       .select('COUNT(*)', 'count')
       .getRawOne<{ count: string }>();
 
     return Number(row?.count ?? 0);
+  }
+
+  async updateRefreshCredentials(
+    sessionId: number,
+    refreshTokenHash: string,
+    refreshExpiresAt: Date,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const em = manager ?? this.repository.manager;
+
+    await em.update(
+      UserSession,
+      { id: sessionId },
+      { refreshTokenHash, refreshExpiresAt },
+    );
+  }
+
+  async revokeExpiredSessions(manager?: EntityManager): Promise<number> {
+    const em = manager ?? this.repository.manager;
+
+    const result = await em
+      .createQueryBuilder()
+      .update(UserSession)
+      .set({ isActive: false, revokedAt: () => 'NOW()' })
+      .where('is_active = true')
+      .andWhere('revoked_at IS NULL')
+      .andWhere('refresh_expires_at IS NOT NULL')
+      .andWhere('refresh_expires_at < NOW()')
+      .execute();
+
+    return result.affected ?? 0;
   }
 }

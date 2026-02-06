@@ -25,6 +25,9 @@ export class UserSession {
   @Column({ name: 'refresh_token_hash', type: 'text', nullable: true })
   refreshTokenHash: string;
 
+  @Column({ name: 'refresh_expires_at', type: 'timestamptz', nullable: true })
+  refreshExpiresAt: Date | null;
+
   @Column({ name: 'revoked_at', type: 'timestamptz', nullable: true })
   revokedAt: Date | null;
 

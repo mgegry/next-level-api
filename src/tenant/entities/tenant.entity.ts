@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { TenantMembership } from './tenant-membership.entity';
+import { TenantMembership } from '../../membership/tenant-membership.entity';
 
 export enum ErpProvider {
   SOFTONE = 'softone',

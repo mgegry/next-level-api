@@ -8,9 +8,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { JwtBootstrapStrategy } from './strategies/jwt-bootstrap.strategy';
+import { MembershipModule } from 'src/membership/membership.module';
 
 @Module({
-  imports: [UserModule, TenantModule, JwtModule],
+  imports: [UserModule, MembershipModule, TenantModule, JwtModule],
   providers: [
     AuthService,
     LocalStrategy,

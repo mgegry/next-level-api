@@ -102,7 +102,7 @@ async function bootstrap() {
   });
 
   // 5) Apply protection globally (protects non-GET/HEAD/OPTIONS by default) :contentReference[oaicite:10]{index=10}
-  app.use(doubleCsrfProtection);
+  // app.use(doubleCsrfProtection);
 
   // ----------------------------------------
   // GLOBAL EXCEPTION FILTER

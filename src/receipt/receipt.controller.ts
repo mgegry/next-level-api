@@ -14,9 +14,10 @@ import { JwtTenantGuard } from 'src/auth/guards/jwt-tenant.guard';
 import { ReceiptService } from './services/receipt.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AwsS3Service } from 'src/core/aws/aws-s3.service';
-import { User } from 'src/user/entities/user.entity';
 import { CurrentAccessUser } from 'src/auth/decorators/current-access-user.decorator';
 import type { AccessUser } from 'src/auth/interfaces/access-user.interface';
+import { PermissionGuard } from 'src/access-control/guards/permission.guard';
+import { RequirePermission } from 'src/access-control/decorators/require-permission.decorator';
 
 @Controller('receipts')
 export class ReceiptController {
@@ -36,7 +37,8 @@ export class ReceiptController {
   }
 
   @Get()
-  @UseGuards(JwtTenantGuard)
+  @RequirePermission('receipt.read2')
+  @UseGuards(JwtTenantGuard, PermissionGuard)
   getReceipts(@CurrentAccessUser() user: AccessUser) {
     return this.receiptService.getAllReceiptsForUser(user.userId);
   }

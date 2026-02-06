@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import {
   MembershipStatus,
   Role,
-} from 'src/tenant/entities/tenant-membership.entity';
+} from 'src/membership/tenant-membership.entity';
 import { ErpProvider } from 'src/tenant/entities/tenant.entity';
-import { TenantMembershipService } from 'src/tenant/services/tenant-membership.service';
+import { TenantMembershipService } from 'src/membership/tenant-membership.service';
 
 export type MyTenantDto = {
   tenantId: number;
@@ -21,17 +21,18 @@ export class MeService {
   ) {}
 
   async getMyTenants(userId: number): Promise<MyTenantDto[]> {
-    const memberships =
-      await this.tenantMembershipService.getActiveByUserWithTenant(userId);
+    // const memberships =
+    //   await this.tenantMembershipService.getActiveByUserWithTenant(userId);
 
-    return memberships
-      .filter((m) => m.status === MembershipStatus.ACTIVE) // defensive
-      .map((m) => ({
-        tenantId: m.tenantId,
-        tenantName: m.tenant.name,
-        erpProvider: m.tenant.erpProvider,
-        membershipId: m.id,
-        role: m.role,
-      }));
+    // return memberships
+    //   .filter((m) => m.status === MembershipStatus.ACTIVE) // defensive
+    //   .map((m) => ({
+    //     tenantId: m.tenantId,
+    //     tenantName: m.tenant.name,
+    //     erpProvider: m.tenant.erpProvider,
+    //     membershipId: m.id,
+    //     role: m.role,
+    //   }));
+    return [];
   }
 }
