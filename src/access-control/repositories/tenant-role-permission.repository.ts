@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { TenantRolePermission } from '../entities/tenant-role-permission.entity';
 
 @Injectable()
@@ -22,17 +22,18 @@ export class TenantRolePermissionRepository {
   async replaceRolePermissions(
     roleId: number,
     permissionKeys: string[],
+    manager?: EntityManager,
   ): Promise<void> {
-    // TODO: simplest correct approach: delete then insert (wrap in service transaction if you want)
-    await this.repository.delete({ roleId });
+    const em = manager ?? this.repository.manager;
 
-    if (!permissionKeys.length) return;
+    await em.delete(TenantRolePermission, { roleId });
 
-    await this.repository.insert(
-      permissionKeys.map((k) => ({
-        roleId,
-        permissionKey: k,
-      })),
+    const uniqueKeys = Array.from(new Set(permissionKeys));
+    if (!uniqueKeys.length) return;
+
+    await em.insert(
+      TenantRolePermission,
+      uniqueKeys.map((permissionKey) => ({ roleId, permissionKey })),
     );
   }
 }

@@ -12,21 +12,24 @@ export class PermissionEvaluatorService {
   ) {}
 
   async getEffectivePermissions(membershipId: number): Promise<string[]> {
-    const cached = await this.cache.get(membershipId);
-    if (cached) return cached;
-
     const membership = await this.membershipRepo.findById(membershipId);
     if (!membership) throw new NotFoundException('Membership not found');
 
+    const cached = await this.cache.get(
+      membershipId,
+      membership.permissionVersion,
+    );
+    if (cached) return cached;
+
     if (!membership.roleId) {
-      await this.cache.set(membershipId, []);
+      await this.cache.set(membershipId, membership.permissionVersion, []);
       return [];
     }
 
     const keys = await this.rolePermRepo.listPermissionKeysForRole(
       membership.roleId,
     );
-    await this.cache.set(membershipId, keys);
+    await this.cache.set(membershipId, membership.permissionVersion, keys);
     return keys;
   }
 

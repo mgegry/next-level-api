@@ -1,29 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { TenantRoleRepository } from '../repositories/tenant-role.repository';
+import { Injectable } from '@nestjs/common';
 import { TenantMembershipRepository } from 'src/membership/tenant-membership.repository';
-import { PermissionCacheService } from './permission-cache.service';
 
 @Injectable()
 export class MembershipRoleService {
-  constructor(
-    private readonly membershipRepo: TenantMembershipRepository,
-    private readonly roleRepo: TenantRoleRepository,
-    private readonly permCache: PermissionCacheService,
-  ) {}
+  constructor(private readonly membershipRepo: TenantMembershipRepository) {}
 
   async assignRoleToMembership(membershipId: number, roleId: number | null) {
-    const membership = await this.membershipRepo.findById(membershipId);
-    if (!membership) throw new NotFoundException('Membership not found');
+    const { changed } = await this.membershipRepo.assignRoleStrict(
+      membershipId,
+      roleId,
+    );
 
-    if (roleId !== null) {
-      const role = await this.roleRepo.findById(roleId);
-      if (!role) throw new NotFoundException('Role not found');
-      if (role.tenantId !== membership.tenantId) {
-        throw new NotFoundException('Role does not belong to this tenant');
-      }
-    }
-
-    await this.membershipRepo.assignRole(membershipId, roleId);
-    await this.permCache.invalidateMembership(membershipId);
+    return { ok: true, changed };
   }
 }

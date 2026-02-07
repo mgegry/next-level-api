@@ -13,6 +13,7 @@ import { MembershipRoleService } from './services/membership-role.service';
 import { PermissionCacheService } from './services/permission-cache.service';
 import { PermissionEvaluatorService } from './services/permission-evaluator.service';
 import { RoleService } from './services/role.service';
+import { AccessController } from './access-control.controller';
 
 @Module({
   imports: [
@@ -36,5 +37,6 @@ import { RoleService } from './services/role.service';
     RoleService,
   ],
   exports: [PermissionEvaluatorService],
+  controllers: [AccessController],
 })
 export class AccessControlModule {}

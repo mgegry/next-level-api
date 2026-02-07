@@ -67,6 +67,9 @@ export class TenantMembership {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  @Column({ name: 'permission_version', type: 'int', default: 1 })
+  permissionVersion: number;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

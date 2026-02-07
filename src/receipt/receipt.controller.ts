@@ -1,11 +1,9 @@
 import {
-  Body,
   Controller,
   Get,
   Param,
   ParseIntPipe,
   Post,
-  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -37,8 +35,8 @@ export class ReceiptController {
   }
 
   @Get()
-  @RequirePermission('receipt.read2')
   @UseGuards(JwtTenantGuard, PermissionGuard)
+  @RequirePermission('receipt.read')
   getReceipts(@CurrentAccessUser() user: AccessUser) {
     return this.receiptService.getAllReceiptsForUser(user.userId);
   }

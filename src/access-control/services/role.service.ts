@@ -8,15 +8,16 @@ import { TenantRolePermissionRepository } from '../repositories/tenant-role-perm
 import { PermissionRepository } from '../repositories/permission.repository';
 import { TenantMembershipRepository } from 'src/membership/tenant-membership.repository';
 import { PermissionCacheService } from './permission-cache.service';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class RoleService {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly roleRepo: TenantRoleRepository,
     private readonly rolePermRepo: TenantRolePermissionRepository,
     private readonly permissionRepo: PermissionRepository,
     private readonly membershipRepo: TenantMembershipRepository,
-    private readonly permCache: PermissionCacheService,
   ) {}
 
   listRoles(tenantId: number) {
@@ -39,8 +40,9 @@ export class RoleService {
   async replaceRolePermissions(roleId: number, permissionKeys: string[]) {
     const role = await this.roleRepo.findById(roleId);
     if (!role) throw new NotFoundException('Role not found');
-    if (role.isSystem)
-      throw new ForbiddenException('System role cannot be modified'); // optional
+    if (role.isSystem) {
+      throw new ForbiddenException('System role cannot be modified');
+    }
 
     // Validate permissions exist in catalog
     const existing = await this.permissionRepo.findByKeys(permissionKeys);
@@ -52,11 +54,19 @@ export class RoleService {
       );
     }
 
-    await this.rolePermRepo.replaceRolePermissions(roleId, permissionKeys);
+    await this.dataSource.transaction(async (manager) => {
+      // Replace permissions for role
+      await this.rolePermRepo.replaceRolePermissions(
+        roleId,
+        permissionKeys,
+        manager,
+      );
 
-    // Invalidate caches for all memberships assigned to this role
-    const membershipIds =
-      await this.membershipRepo.listMembershipIdsByRoleId(roleId);
-    await this.permCache.invalidateManyMemberships(membershipIds);
+      // Bump permission_version for all memberships using this role
+      await this.membershipRepo.bumpPermissionVersionByRoleId(roleId, manager);
+    });
+
+    // No cache invalidation needed with versioned keys
+    return { ok: true };
   }
 }
